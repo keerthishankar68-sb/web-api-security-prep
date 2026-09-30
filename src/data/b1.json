@@ -1,0 +1,107 @@
+[
+  {
+    "id": 1,
+    "slug": "same-origin-policy-and-cors",
+    "title": "What is Same-Origin Policy (SOP) and how does CORS relax it safely?",
+    "subtitle": "Watch the request travel. Understand every step.",
+    "category": "Browser and HTTP Security",
+    "nodes": [
+      {
+        "id": "originA",
+        "label": "Origin A",
+        "sub": "myapp.com",
+        "iconType": "browser"
+      },
+      {
+        "id": "preflight",
+        "label": "Preflight",
+        "sub": "OPTIONS /api",
+        "iconType": "gateway"
+      },
+      {
+        "id": "corsEngine",
+        "label": "CORS Engine",
+        "sub": "Origin check",
+        "iconType": "shield"
+      },
+      {
+        "id": "originB",
+        "label": "API Server",
+        "sub": "api.partner.com",
+        "iconType": "server"
+      }
+    ],
+    "steps": [
+      {
+        "id": 1,
+        "label": "Origin mismatch",
+        "from": "originA",
+        "to": "preflight",
+        "packet": "Cross-Origin Request",
+        "caption": "Step 1: The browser isolates JavaScript runtimes by protocol, host, and port. An async fetch to a different origin triggers browser security restrictions.",
+        "status": "normal"
+      },
+      {
+        "id": 2,
+        "label": "Preflight handshake",
+        "from": "preflight",
+        "to": "corsEngine",
+        "packet": "OPTIONS with headers",
+        "caption": "Step 2: For non-simple requests, the browser sends an HTTP OPTIONS preflight asking for permission before sending the actual data payload.",
+        "status": "defense"
+      },
+      {
+        "id": 3,
+        "label": "Access-Control headers",
+        "from": "corsEngine",
+        "to": "originB",
+        "packet": "Access-Control-Allow-Origin",
+        "caption": "Step 3: The server responds with explicit CORS headers specifying allowed origins, HTTP methods, and whether credentials can be shared.",
+        "status": "defense"
+      },
+      {
+        "id": 4,
+        "label": "Interview line",
+        "from": "originA",
+        "to": "originB",
+        "packet": "Secure Data Access",
+        "caption": "Step 4: Interview line: SOP protects users by preventing rogue websites from reading data from another origin; CORS is a selective mechanism where the server explicitly relaxes SOP for trusted origins.",
+        "status": "normal",
+        "isInterviewLine": true
+      }
+    ],
+    "sayIt": {
+      "prompt": "Summarize SOP and CORS in under 60 seconds.",
+      "speechScript": "The Same-Origin Policy is a fundamental browser security boundary ensuring scripts from one origin cannot read sensitive data from another. CORS relaxes this policy safely by having the server send explicit headers like Access-Control-Allow-Origin, determining if the browser is allowed to expose the response.",
+      "keyPhrases": [
+        "Same-Origin Policy",
+        "Protocol, domain, and port",
+        "CORS preflight OPTIONS",
+        "Access-Control-Allow-Origin",
+        "Server-driven authorization"
+      ]
+    },
+    "nailIt": {
+      "whatIsHappening": "The browser blocks cross-origin reading by default. The server evaluates origin headers and grants granular read permissions.",
+      "interviewTakeaway": "Always emphasize that CORS is enforced by the browser to protect users, not by the server to protect APIs against automated tools like cURL.",
+      "commonTraps": [
+        "Saying CORS stops malicious bots (bots ignore SOP entirely; it only protects browsers).",
+        "Using Access-Control-Allow-Origin: * when Access-Control-Allow-Credentials is true (browsers strictly forbid this combo).",
+        "Confusing authorization with CORS headers."
+      ],
+      "seniorPoints": [
+        "Explain that preflight responses can be cached via Access-Control-Max-Age to reduce latency.",
+        "Never blindly echo the Origin header back without server-side whitelist validation.",
+        "Null origin bypasses often occur when embedding sandboxed iframes."
+      ]
+    },
+    "keywords": [
+      "SOP",
+      "CORS",
+      "Preflight",
+      "Cross-Origin",
+      "Origin Header",
+      "Access-Control-Allow-Origin"
+    ]
+  }
+]
