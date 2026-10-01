@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QuestionData } from '../types/question';
 import {
@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   Bookmark,
   Circle,
-  ChevronRight
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react';
 
 interface HomeCurriculumViewProps {
@@ -49,6 +50,12 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
   onPrintCheatSheet,
 }) => {
   const navigate = useNavigate();
+  const [selectedTierFilter, setSelectedTierFilter] = useState<'all' | 'Basic' | 'Intermediate' | 'Advanced'>('all');
+  const [collapsedLevels, setCollapsedLevels] = useState<Record<string, boolean>>({});
+
+  const toggleLevelCollapse = (levelId: string) => {
+    setCollapsedLevels(prev => ({ ...prev, [levelId]: !prev[levelId] }));
+  };
 
   // Group questions into 3 progressive difficulty levels
   const level1Questions = questions.filter(q => q.tier === 'Core' || (!q.tier && q.id <= 7));
@@ -60,7 +67,7 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
       id: 'level-1-basic',
       levelNumber: 1,
       title: 'Level 1: Basic / Core Fundamentals',
-      badge: 'Junior to Mid-Level Focus',
+      badge: 'Junior to Mid-Level',
       difficulty: 'Basic',
       colorTheme: 'emerald',
       targetAudience: 'Software Engineers, Frontend/Fullstack Developers & Security Analysts',
@@ -72,7 +79,7 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
       id: 'level-2-intermediate',
       levelNumber: 2,
       title: 'Level 2: Intermediate Defenses',
-      badge: 'Mid-Level to Senior Focus',
+      badge: 'Mid-Level to Senior',
       difficulty: 'Intermediate',
       colorTheme: 'blue',
       targetAudience: 'Senior Engineers, Backend Architects & Security Engineers',
@@ -84,7 +91,7 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
       id: 'level-3-advanced',
       levelNumber: 3,
       title: 'Level 3: Advanced Architectures',
-      badge: 'Staff & Principal Architect Focus',
+      badge: 'Staff & Principal Architect',
       difficulty: 'Advanced',
       colorTheme: 'purple',
       targetAudience: 'Staff Engineers, Principal Architects & Head of Security',
@@ -99,64 +106,59 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
   const readinessPercent = Math.round((masteredCount / Math.max(1, questions.length)) * 100);
 
   const firstQuestion = questions[0];
+  const filteredLevels = levels.filter(lvl => selectedTierFilter === 'all' || lvl.difficulty === selectedTierFilter);
 
   return (
     <div className="curriculum-home-wrapper">
-      {/* Hero Section */}
+      {/* Hero Welcome Banner */}
       <section className="curriculum-hero-banner">
         <div className="hero-badge-pill">
           <Sparkles size={14} className="sparkle-gold" />
-          <span>Curated Interview Lab • 20 Core Modules</span>
+          <span>Complete 50-Question Security Curriculum</span>
         </div>
 
         <h1 className="hero-main-heading">
-          Web &amp; API Security Interview Mastery
+          Web & API Security Interview Masterclass
         </h1>
 
-        <p className="hero-description-text">
-          Prepare for technical engineering interviews with interactive animated protocol simulations, live AI spoken rehearsals, and staff-level architectural takeaways.
+        <p className="hero-lead-text">
+          Interactive protocol sequence diagrams, spoken rehearsal scripts, telemetry packet previews,
+          and deep-dive explanations designed for software engineers and security architects.
         </p>
 
-        {/* Primary Call to Action: Start with Question 1 */}
-        <div className="hero-actions-deck">
+        {/* Primary Action Row */}
+        <div className="hero-action-deck">
           {firstQuestion && (
             <button
               type="button"
-              className="hero-start-btn primary"
+              className="hero-start-primary-btn"
               onClick={() => navigate(`/${firstQuestion.slug}`)}
             >
-              <div className="btn-icon-bubble">
-                <Play size={16} fill="currentColor" />
-              </div>
-              <div className="btn-label-group">
-                <span className="btn-top-tag">RECOMMENDED ENTRY</span>
-                <span className="btn-main-text">Start with Question 1</span>
-              </div>
-              <ArrowRight size={18} className="btn-arrow" />
+              <Play size={18} fill="currentColor" />
+              <span>Start with Question 1</span>
+              <ArrowRight size={18} className="arrow-pulse" />
             </button>
           )}
 
-          <div className="hero-secondary-buttons">
-            <button
-              type="button"
-              className="hero-tool-btn"
-              onClick={onOpenFlashcards}
-              title="Practice with Spaced Repetition Flip Cards"
-            >
-              <Layers size={16} className="tool-btn-icon purple" />
-              <span>Practice Flashcards</span>
-            </button>
-
+          <div className="hero-secondary-tools">
             <button
               type="button"
               className="hero-tool-btn"
               onClick={onOpenCommandPalette}
-              title="Search curriculum with ⌘K"
+              title="Open Command Palette (Ctrl+K)"
             >
               <Search size={16} className="tool-btn-icon blue" />
-              <span>Quick Search (⌘K)</span>
+              <span>Search (Ctrl+K)</span>
             </button>
-
+            <button
+              type="button"
+              className="hero-tool-btn"
+              onClick={onOpenFlashcards}
+              title="Practice Spaced Repetition Flashcards"
+            >
+              <Layers size={16} className="tool-btn-icon purple" />
+              <span>Flashcards</span>
+            </button>
             <button
               type="button"
               className="hero-tool-btn"
@@ -211,11 +213,55 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
           </div>
         </div>
 
+        {/* Mobile-Friendly Difficulty Filter Pills */}
+        <div className="difficulty-tier-pills-bar" role="tablist" aria-label="Difficulty Levels">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedTierFilter === 'all'}
+            className={`tier-filter-pill ${selectedTierFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setSelectedTierFilter('all')}
+          >
+            All Tiers ({questions.length})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedTierFilter === 'Basic'}
+            className={`tier-filter-pill emerald ${selectedTierFilter === 'Basic' ? 'active' : ''}`}
+            onClick={() => setSelectedTierFilter('Basic')}
+          >
+            <span className="pill-dot emerald" />
+            Basic ({level1Questions.length})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedTierFilter === 'Intermediate'}
+            className={`tier-filter-pill blue ${selectedTierFilter === 'Intermediate' ? 'active' : ''}`}
+            onClick={() => setSelectedTierFilter('Intermediate')}
+          >
+            <span className="pill-dot blue" />
+            Intermediate ({level2Questions.length})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedTierFilter === 'Advanced'}
+            className={`tier-filter-pill purple ${selectedTierFilter === 'Advanced' ? 'active' : ''}`}
+            onClick={() => setSelectedTierFilter('Advanced')}
+          >
+            <span className="pill-dot purple" />
+            Advanced ({level3Questions.length})
+          </button>
+        </div>
+
         <div className="levels-cards-stack">
-          {levels.map((lvl) => {
+          {filteredLevels.map((lvl) => {
             const lvlMastered = lvl.questions.filter(q => questionStatuses[q.slug] === 'mastered').length;
             const lvlPercent = Math.round((lvlMastered / Math.max(1, lvl.questions.length)) * 100);
             const firstLvlQ = lvl.questions[0];
+            const isCollapsed = !!collapsedLevels[lvl.id];
 
             return (
               <div key={lvl.id} className={`level-track-card ${lvl.colorTheme}`}>
@@ -224,10 +270,10 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
                     <div className={`level-icon-box ${lvl.colorTheme}`}>
                       {lvl.icon}
                     </div>
-                    <div>
+                    <div className="level-header-info">
                       <div className="level-badge-row">
                         <span className={`level-difficulty-pill ${lvl.colorTheme}`}>
-                          {lvl.difficulty} Level
+                          {lvl.difficulty}
                         </span>
                         <span className="level-modules-pill">
                           {lvl.questions.length} Questions
@@ -255,63 +301,77 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
                       </div>
                     </div>
 
-                    {firstLvlQ && (
+                    <div className="level-actions-row">
+                      {firstLvlQ && (
+                        <button
+                          type="button"
+                          className={`level-start-btn ${lvl.colorTheme}`}
+                          onClick={() => navigate(`/${firstLvlQ.slug}`)}
+                        >
+                          <span>Start {lvl.difficulty}</span>
+                          <ArrowRight size={14} />
+                        </button>
+                      )}
+
                       <button
                         type="button"
-                        className={`level-start-btn ${lvl.colorTheme}`}
-                        onClick={() => navigate(`/${firstLvlQ.slug}`)}
+                        className="level-collapse-toggle-btn"
+                        onClick={() => toggleLevelCollapse(lvl.id)}
+                        aria-label={isCollapsed ? `Expand ${lvl.title}` : `Collapse ${lvl.title}`}
                       >
-                        <span>Start {lvl.difficulty}</span>
-                        <ArrowRight size={14} />
+                        <span>{isCollapsed ? `Show (${lvl.questions.length})` : 'Collapse'}</span>
+                        <ChevronDown size={14} className={`toggle-arrow ${isCollapsed ? 'is-collapsed' : ''}`} />
                       </button>
-                    )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Question Items in this Level */}
-                <div className="level-questions-grid">
-                  {lvl.questions.map((q) => {
-                    const status = questionStatuses[q.slug] || 'unseen';
+                {/* Question Items in this Level (collapsible on demand) */}
+                {!isCollapsed && (
+                  <div className="level-questions-grid">
+                    {lvl.questions.map((q) => {
+                      const status = questionStatuses[q.slug] || 'unseen';
 
-                    return (
-                      <Link
-                        key={q.id}
-                        to={`/${q.slug}`}
-                        className={`level-question-item ${status}`}
-                      >
-                        <div className="lq-left">
-                          <span className="lq-number">#{q.id}</span>
-                          <div className="lq-content">
-                            <h4 className="lq-title">{q.title}</h4>
-                            <span className="lq-category">{q.category}</span>
+                      return (
+                        <Link
+                          key={q.id}
+                          to={`/${q.slug}`}
+                          className={`level-question-item ${status}`}
+                        >
+                          <div className="lq-left">
+                            <span className="lq-number">#{q.id}</span>
+                            <div className="lq-content">
+                              <h4 className="lq-title">{q.title}</h4>
+                              <span className="lq-category">{q.category}</span>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="lq-right">
-                          {status === 'mastered' && (
-                            <span className="lq-status-badge mastered">
-                              <CheckCircle2 size={13} />
-                              <span>Mastered</span>
-                            </span>
-                          )}
-                          {status === 'review' && (
-                            <span className="lq-status-badge review">
-                              <Bookmark size={13} />
-                              <span>Review</span>
-                            </span>
-                          )}
-                          {status === 'unseen' && (
-                            <span className="lq-status-badge unseen">
-                              <Circle size={8} />
-                              <span>Unseen</span>
-                            </span>
-                          )}
-                          <ChevronRight size={15} className="lq-arrow" />
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
+                          <div className="lq-right">
+                            {status === 'mastered' && (
+                              <span className="lq-status-badge mastered">
+                                <CheckCircle2 size={12} />
+                                <span>Mastered</span>
+                              </span>
+                            )}
+                            {status === 'review' && (
+                              <span className="lq-status-badge review">
+                                <Bookmark size={12} />
+                                <span>Review</span>
+                              </span>
+                            )}
+                            {status === 'unseen' && (
+                              <span className="lq-status-badge unseen">
+                                <Circle size={7} />
+                                <span>Unseen</span>
+                              </span>
+                            )}
+                            <ChevronRight size={14} className="lq-arrow" />
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
