@@ -419,6 +419,8 @@ body {
 /* Main Content Area */
 .app-main-content {
   flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
   padding: 24px 32px;
   max-width: 1240px;
   margin: 0 auto;
@@ -4894,10 +4896,13 @@ body.dark-mode {
 
 .curriculum-home-wrapper {
   flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
   padding: 24px 32px 48px;
   max-width: 1240px;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
