@@ -51,9 +51,9 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
   const navigate = useNavigate();
 
   // Group questions into 3 progressive difficulty levels
-  const level1Questions = questions.filter(q => (q.tier === 'Core' || q.id <= 7));
-  const level2Questions = questions.filter(q => (q.tier === 'Intermediate' || (q.id > 7 && q.id <= 14)));
-  const level3Questions = questions.filter(q => (q.tier === 'Advanced' || q.id > 14));
+  const level1Questions = questions.filter(q => q.tier === 'Core' || (!q.tier && q.id <= 7));
+  const level2Questions = questions.filter(q => q.tier === 'Intermediate' || (!q.tier && q.id > 7 && q.id <= 14));
+  const level3Questions = questions.filter(q => q.tier === 'Advanced' || (!q.tier && q.id > 14));
 
   const levels: LevelConfig[] = [
     {
