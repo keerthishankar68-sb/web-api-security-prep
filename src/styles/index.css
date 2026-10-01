@@ -7211,3 +7211,580 @@ code {
 .diff-q-icon.review   { color: #f59e0b; }
 
 /* Dark mode already matches (dark bg assumed) */
+
+/* ===================================================
+   UNIQUE CYBERSECURITY LEVEL COMMAND DECK
+   Interactive Stepper Rail & Active Level Stage
+   =================================================== */
+
+.section-kicker {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  margin-bottom: 6px;
+}
+
+.view-mode-toggle-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #090e1a;
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid #1e293b;
+}
+
+.view-mode-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-mode-toggle-btn:hover {
+  color: #f1f5f9;
+}
+
+.view-mode-toggle-btn.active {
+  background: #1e293b;
+  color: #38bdf8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Stepper Rail */
+.level-stepper-rail {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .level-stepper-rail {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.level-stepper-card {
+  display: flex;
+  flex-direction: column;
+  background: #0c1424;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.level-stepper-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  transition: background 0.2s ease;
+}
+
+.level-stepper-card.emerald::before { background: #10b981; }
+.level-stepper-card.blue::before    { background: #3b82f6; }
+.level-stepper-card.purple::before  { background: #8b5cf6; }
+
+.level-stepper-card:hover {
+  transform: translateY(-2px);
+  border-color: #334155;
+  background: #0f192c;
+}
+
+.level-stepper-card.is-active {
+  background: #0f1c33;
+  border-color: #38bdf8;
+  box-shadow: 0 8px 24px -4px rgba(56, 189, 248, 0.15);
+}
+
+.level-stepper-card.is-active.emerald {
+  border-color: #10b981;
+  box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.18);
+}
+.level-stepper-card.is-active.blue {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 24px -4px rgba(59, 130, 246, 0.18);
+}
+.level-stepper-card.is-active.purple {
+  border-color: #8b5cf6;
+  box-shadow: 0 8px 24px -4px rgba(139, 92, 246, 0.18);
+}
+
+.stepper-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.stepper-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.level-stepper-card.emerald .stepper-badge-pill {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.level-stepper-card.blue .stepper-badge-pill {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+.level-stepper-card.purple .stepper-badge-pill {
+  background: rgba(139, 92, 246, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.stepper-mastery-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.stepper-card-mid {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.stepper-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.stepper-main-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 4px;
+  line-height: 1.3;
+}
+
+.stepper-sub-desc {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stepper-card-bottom {
+  margin-top: auto;
+}
+
+.stepper-progress-bar {
+  height: 4px;
+  background: #1e293b;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.stepper-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.level-stepper-card.emerald .stepper-progress-fill { background: #10b981; }
+.level-stepper-card.blue .stepper-progress-fill    { background: #3b82f6; }
+.level-stepper-card.purple .stepper-progress-fill  { background: #8b5cf6; }
+
+.stepper-click-hint {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #475569;
+  text-align: right;
+  transition: color 0.15s ease;
+}
+
+.level-stepper-card.is-active .stepper-click-hint {
+  color: #38bdf8;
+}
+
+/* ===================================================
+   Active Level Showcase Stage
+   =================================================== */
+
+.active-level-stage {
+  background: #0b1220;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.active-level-stage.emerald {
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 16px 48px -12px rgba(16, 185, 129, 0.08);
+}
+.active-level-stage.blue {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 16px 48px -12px rgba(59, 130, 246, 0.08);
+}
+.active-level-stage.purple {
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 16px 48px -12px rgba(139, 92, 246, 0.08);
+}
+
+.stage-hero-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #1e293b;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 950px) {
+  .stage-hero-banner {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
+.stage-hero-info {
+  flex: 1;
+}
+
+.stage-tags-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.stage-level-pill {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.stage-level-pill.emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.stage-level-pill.blue    { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.stage-level-pill.purple  { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+
+.stage-audience-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.stage-headline {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.stage-description {
+  font-size: 0.86rem;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin: 0 0 16px;
+  max-width: 780px;
+}
+
+.stage-domain-chips {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stage-chips-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 4px;
+}
+
+.chips-flex-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stage-chip-item {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #cbd5e1;
+  background: rgba(30, 41, 59, 0.7);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+.stage-hero-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 240px;
+  justify-content: center;
+}
+
+.stage-metric-box {
+  background: #090e1a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.stage-metric-val {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #f8fafc;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stage-metric-title {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+.stage-meter-track {
+  height: 6px;
+  background: #1e293b;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.stage-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.stage-meter-fill.emerald { background: #10b981; }
+.stage-meter-fill.blue    { background: #3b82f6; }
+.stage-meter-fill.purple  { background: #8b5cf6; }
+
+.stage-metric-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.stage-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border: none;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.stage-launch-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.stage-launch-btn.emerald { background: #10b981; color: #fff; }
+.stage-launch-btn.blue    { background: #3b82f6; color: #fff; }
+.stage-launch-btn.purple  { background: #8b5cf6; color: #fff; }
+
+/* Questions Grid in Stage */
+.stage-deck-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.stage-deck-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.stage-deck-count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.stage-questions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .stage-questions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stage-card-link {
+  display: flex;
+  flex-direction: column;
+  background: #090e1a;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.stage-card-link:hover {
+  background: #0e1728;
+  transform: translateY(-2px);
+  border-color: #38bdf8;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.stage-card-link.emerald:hover { border-color: #10b981; }
+.stage-card-link.blue:hover    { border-color: #3b82f6; }
+.stage-card-link.purple:hover  { border-color: #8b5cf6; }
+
+.stage-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.stage-card-num {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #475569;
+  letter-spacing: 0.05em;
+}
+
+.stage-card-cat {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.stage-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.stage-status-chip.mastered {
+  color: #10b981;
+}
+
+.stage-status-chip.review {
+  color: #f59e0b;
+}
+
+.stage-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 4px;
+  line-height: 1.35;
+}
+
+.stage-card-sub {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0 0 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.stage-card-footer {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.stage-card-prompt {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #38bdf8;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: gap 0.15s ease;
+}
+
+.stage-card-link:hover .stage-card-prompt {
+  gap: 8px;
+  color: #7dd3fc;
+}
