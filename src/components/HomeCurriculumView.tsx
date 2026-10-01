@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import type { QuestionData } from '../types/question';
 import {
@@ -14,9 +14,6 @@ import {
   Sparkles,
   CheckCircle2,
   Bookmark,
-  Circle,
-  ChevronRight,
-  ChevronDown
 } from 'lucide-react';
 
 interface HomeCurriculumViewProps {
@@ -50,13 +47,6 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
   onPrintCheatSheet,
 }) => {
   const navigate = useNavigate();
-  const [selectedTierFilter, setSelectedTierFilter] = useState<'all' | 'Basic' | 'Intermediate' | 'Advanced'>('all');
-  const [collapsedLevels, setCollapsedLevels] = useState<Record<string, boolean>>({});
-
-  const toggleLevelCollapse = (levelId: string) => {
-    setCollapsedLevels(prev => ({ ...prev, [levelId]: !prev[levelId] }));
-  };
-
   // Group questions into 3 progressive difficulty levels
   const level1Questions = questions.filter(q => q.tier === 'Core' || (!q.tier && q.id <= 7));
   const level2Questions = questions.filter(q => q.tier === 'Intermediate' || (!q.tier && q.id > 7 && q.id <= 14));
@@ -106,7 +96,6 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
   const readinessPercent = Math.round((masteredCount / Math.max(1, questions.length)) * 100);
 
   const firstQuestion = questions[0];
-  const filteredLevels = levels.filter(lvl => selectedTierFilter === 'all' || lvl.difficulty === selectedTierFilter);
 
   return (
     <div className="curriculum-home-wrapper">
@@ -202,7 +191,7 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
         </div>
       </section>
 
-      {/* Levels Explorer Section */}
+      {/* 3-Column Difficulty Panel Layout */}
       <section className="curriculum-levels-section">
         <div className="section-header-row">
           <div>
@@ -213,165 +202,48 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
           </div>
         </div>
 
-        {/* Mobile-Friendly Difficulty Filter Pills */}
-        <div className="difficulty-tier-pills-bar" role="tablist" aria-label="Difficulty Levels">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={selectedTierFilter === 'all'}
-            className={`tier-filter-pill ${selectedTierFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setSelectedTierFilter('all')}
-          >
-            All Tiers ({questions.length})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={selectedTierFilter === 'Basic'}
-            className={`tier-filter-pill emerald ${selectedTierFilter === 'Basic' ? 'active' : ''}`}
-            onClick={() => setSelectedTierFilter('Basic')}
-          >
-            <span className="pill-dot emerald" />
-            Basic ({level1Questions.length})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={selectedTierFilter === 'Intermediate'}
-            className={`tier-filter-pill blue ${selectedTierFilter === 'Intermediate' ? 'active' : ''}`}
-            onClick={() => setSelectedTierFilter('Intermediate')}
-          >
-            <span className="pill-dot blue" />
-            Intermediate ({level2Questions.length})
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={selectedTierFilter === 'Advanced'}
-            className={`tier-filter-pill purple ${selectedTierFilter === 'Advanced' ? 'active' : ''}`}
-            onClick={() => setSelectedTierFilter('Advanced')}
-          >
-            <span className="pill-dot purple" />
-            Advanced ({level3Questions.length})
-          </button>
-        </div>
-
-        <div className="levels-cards-stack">
-          {filteredLevels.map((lvl) => {
-            const lvlMastered = lvl.questions.filter(q => questionStatuses[q.slug] === 'mastered').length;
-            const lvlPercent = Math.round((lvlMastered / Math.max(1, lvl.questions.length)) * 100);
+        <div className="difficulty-three-col">
+          {levels.map((lvl) => {
+            const lvlMastered = lvl.questions.filter(q => questionStatuses[q.slug] === "mastered").length;
             const firstLvlQ = lvl.questions[0];
-            const isCollapsed = !!collapsedLevels[lvl.id];
+            const diffLabel = lvl.difficulty === "Basic" ? "Easy" : lvl.difficulty === "Intermediate" ? "Medium" : "Hard";
 
             return (
-              <div key={lvl.id} className={`level-track-card ${lvl.colorTheme}`}>
-                <div className="level-track-header">
-                  <div className="level-header-left">
-                    <div className={`level-icon-box ${lvl.colorTheme}`}>
-                      {lvl.icon}
-                    </div>
-                    <div className="level-header-info">
-                      <div className="level-badge-row">
-                        <span className={`level-difficulty-pill ${lvl.colorTheme}`}>
-                          {lvl.difficulty}
-                        </span>
-                        <span className="level-modules-pill">
-                          {lvl.questions.length} Questions
-                        </span>
-                        <span className="level-audience-tag">
-                          {lvl.badge}
-                        </span>
-                      </div>
-                      <h3 className="level-track-title">{lvl.title}</h3>
-                      <p className="level-track-desc">{lvl.description}</p>
-                    </div>
+              <div key={lvl.id} className={`diff-col-panel ${lvl.colorTheme}`}>
+                <div className="diff-col-header">
+                  <div className="diff-col-title-row">
+                    <span className={`diff-col-label ${lvl.colorTheme}`}>{diffLabel}</span>
+                    <span className="diff-col-count">{lvlMastered} / {lvl.questions.length}</span>
                   </div>
-
-                  <div className="level-header-right">
-                    <div className="level-progress-display">
-                      <div className="level-progress-text">
-                        <span>Progress: <strong>{lvlMastered}/{lvl.questions.length}</strong></span>
-                        <span className="level-percent">{lvlPercent}%</span>
-                      </div>
-                      <div className="level-progress-bar-bg">
-                        <div
-                          className={`level-progress-bar-fill ${lvl.colorTheme}`}
-                          style={{ width: `${lvlPercent}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="level-actions-row">
-                      {firstLvlQ && (
-                        <button
-                          type="button"
-                          className={`level-start-btn ${lvl.colorTheme}`}
-                          onClick={() => navigate(`/${firstLvlQ.slug}`)}
-                        >
-                          <span>Start {lvl.difficulty}</span>
-                          <ArrowRight size={14} />
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        className="level-collapse-toggle-btn"
-                        onClick={() => toggleLevelCollapse(lvl.id)}
-                        aria-label={isCollapsed ? `Expand ${lvl.title}` : `Collapse ${lvl.title}`}
-                      >
-                        <span>{isCollapsed ? `Show (${lvl.questions.length})` : 'Collapse'}</span>
-                        <ChevronDown size={14} className={`toggle-arrow ${isCollapsed ? 'is-collapsed' : ''}`} />
-                      </button>
-                    </div>
-                  </div>
+                  <p className="diff-col-desc">{lvl.description}</p>
+                  {firstLvlQ && (
+                    <button
+                      type="button"
+                      className={`diff-start-btn ${lvl.colorTheme}`}
+                      onClick={() => navigate(`/${firstLvlQ.slug}`)}
+                    >
+                      Start {diffLabel} <ArrowRight size={13} />
+                    </button>
+                  )}
                 </div>
 
-                {/* Question Items in this Level (collapsible on demand) */}
-                {!isCollapsed && (
-                  <div className="level-questions-grid">
-                    {lvl.questions.map((q) => {
-                      const status = questionStatuses[q.slug] || 'unseen';
-
-                      return (
-                        <Link
-                          key={q.id}
-                          to={`/${q.slug}`}
-                          className={`level-question-item ${status}`}
-                        >
-                          <div className="lq-left">
-                            <span className="lq-number">#{q.id}</span>
-                            <div className="lq-content">
-                              <h4 className="lq-title">{q.title}</h4>
-                              <span className="lq-category">{q.category}</span>
-                            </div>
-                          </div>
-
-                          <div className="lq-right">
-                            {status === 'mastered' && (
-                              <span className="lq-status-badge mastered">
-                                <CheckCircle2 size={12} />
-                                <span>Mastered</span>
-                              </span>
-                            )}
-                            {status === 'review' && (
-                              <span className="lq-status-badge review">
-                                <Bookmark size={12} />
-                                <span>Review</span>
-                              </span>
-                            )}
-                            {status === 'unseen' && (
-                              <span className="lq-status-badge unseen">
-                                <Circle size={7} />
-                                <span>Unseen</span>
-                              </span>
-                            )}
-                            <ChevronRight size={14} className="lq-arrow" />
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="diff-col-list">
+                  {lvl.questions.map((q, idx) => {
+                    const status = questionStatuses[q.slug] || "unseen";
+                    return (
+                      <Link
+                        key={q.id}
+                        to={`/${q.slug}`}
+                        className={`diff-q-row ${status}`}
+                      >
+                        <span className="diff-q-num">{String(idx + 1).padStart(2, "0")}</span>
+                        <span className="diff-q-title">{q.title}</span>
+                        {status === "mastered" && <CheckCircle2 size={13} className="diff-q-icon mastered" />}
+                        {status === "review" && <Bookmark size={13} className="diff-q-icon review" />}
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
