@@ -207,10 +207,7 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
               <div key={lvl.id} className={`diff-col-panel ${lvl.colorTheme}`}>
                 <div className="diff-col-header">
                   <div className="diff-col-title-row">
-                    <div className="diff-col-level-badge-wrap">
-                      <span className={`diff-col-tag ${lvl.colorTheme}`}>Level {lvl.levelNumber}</span>
-                      <h3 className="diff-col-name">{lvl.name}</h3>
-                    </div>
+                    <h3 className={`diff-col-name ${lvl.colorTheme}`}>Level {lvl.levelNumber}: {lvl.name}</h3>
                     <span className="diff-col-count">{lvlMastered} / {lvl.questions.length}</span>
                   </div>
                   <div className="diff-col-audience">{lvl.badge}</div>
@@ -221,7 +218,7 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
                       className={`diff-start-btn ${lvl.colorTheme}`}
                       onClick={() => navigate(`/${firstLvlQ.slug}`)}
                     >
-                      Start Level {lvl.levelNumber} <ArrowRight size={13} />
+                      Start Level {lvl.levelNumber}: {lvl.name} <ArrowRight size={13} />
                     </button>
                   )}
                 </div>

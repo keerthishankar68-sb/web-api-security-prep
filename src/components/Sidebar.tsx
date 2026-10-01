@@ -46,9 +46,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const progressPercent = Math.round((masteredCount / Math.max(1, questions.length)) * 100);
 
   const tiers: TierGroup[] = [
-    { tier: 'Core', label: 'CORE FUNDAMENTALS', questions: [] },
-    { tier: 'Intermediate', label: 'INTERMEDIATE DEFENSES', questions: [] },
-    { tier: 'Advanced', label: 'ADVANCED ARCHITECTURES', questions: [] }
+    { tier: 'Core', label: 'LEVEL 1: BASIC', questions: [] },
+    { tier: 'Intermediate', label: 'LEVEL 2: INTERMEDIATE', questions: [] },
+    { tier: 'Advanced', label: 'LEVEL 3: ADVANCED', questions: [] }
   ];
 
   filtered.forEach((q) => {
