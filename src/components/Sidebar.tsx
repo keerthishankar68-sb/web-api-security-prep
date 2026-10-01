@@ -54,7 +54,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="sidebar-header-section">
         <div className="sidebar-title-row">
           <span className="sidebar-main-title">Protocol Curricula</span>
-          <span className="modules-count-pill">{questions.length} Modules</span>
+          <div className="sidebar-title-actions">
+            <span className="modules-count-pill">{questions.length} Modules</span>
+            <button
+              type="button"
+              className="sidebar-mobile-close-btn"
+              onClick={onClose}
+              aria-label="Close sidebar"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className="sidebar-progress-box">

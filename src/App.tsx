@@ -60,6 +60,13 @@ export const App: React.FC = () => {
       />
 
       <div className="app-body-layout">
+        {mobileMenuOpen && (
+          <div
+            className="sidebar-backdrop"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close menu overlay"
+          />
+        )}
         <Sidebar
           questions={questions}
           searchTerm={searchTerm}

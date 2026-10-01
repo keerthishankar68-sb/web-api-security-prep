@@ -2328,3 +2328,430 @@ body {
 .dark .deck-target-title {
   color: #cbd5e1;
 }
+
+
+/* ==========================================================================
+   ADVANCED MOBILE & TABLET RESPONSIVE STYLING (TOUCH-FRIENDLY & ADAPTIVE)
+   ========================================================================== */
+
+/* Mobile Backdrop */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  top: 57px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 90;
+  animation: backdropFade 0.2s ease-out;
+}
+
+@keyframes backdropFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.sidebar-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-mobile-close-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Tablet & Mobile Breakpoint (<= 860px) */
+@media (max-width: 860px) {
+  .sidebar-mobile-close-btn {
+    display: inline-flex;
+  }
+
+  /* Off-canvas mobile drawer */
+  .app-sidebar {
+    position: fixed;
+    top: 57px;
+    bottom: 0;
+    left: 0;
+    width: 85%;
+    max-width: 320px;
+    min-width: unset;
+    height: calc(100vh - 57px);
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: none;
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 14px 0 35px rgba(0, 0, 0, 0.35);
+  }
+
+  .app-main-content {
+    padding: 18px 16px 40px;
+    max-width: 100%;
+  }
+
+  .question-top-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .view-tabs-switcher {
+    width: 100%;
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .view-tabs-switcher::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab-nav-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .nail-it-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .flow-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile Small Devices (<= 640px) */
+@media (max-width: 640px) {
+  .app-header {
+    padding: 8px 12px;
+  }
+
+  .brand-wrapper {
+    gap: 7px;
+  }
+
+  .brand-icon-box {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .brand-name {
+    font-size: 1.02rem;
+  }
+
+  .brand-tag {
+    font-size: 0.65rem;
+  }
+
+  .brand-status-pill {
+    display: none;
+  }
+
+  .header-center {
+    margin: 0 8px;
+    flex: 1;
+  }
+
+  .search-input {
+    font-size: 0.78rem;
+    padding: 6px 26px 6px 28px;
+  }
+
+  .search-icon {
+    left: 8px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .kbd-shortcut {
+    display: none;
+  }
+
+  .spec-badge-btn {
+    padding: 6px 8px;
+  }
+
+  .spec-badge-btn span {
+    display: none;
+  }
+
+  .spec-badge-btn .sparkle-icon {
+    margin: 0;
+  }
+
+  .app-main-content {
+    padding: 14px 10px 36px;
+  }
+
+  .question-title-heading {
+    font-size: 1.25rem;
+    line-height: 1.35;
+    margin-bottom: 4px;
+  }
+
+  .question-subtitle-text {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    margin-bottom: 16px;
+  }
+
+  /* Step selector pills scrollable row */
+  .flow-step-selector-row {
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .flow-step-selector-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .step-selector-pill {
+    padding: 6px 11px;
+    font-size: 0.75rem;
+  }
+
+  /* Interactive Stage Diagram on Small Screens */
+  .interactive-stage-card {
+    padding: 14px 10px;
+    min-height: unset;
+  }
+
+  .stage-telemetry-hud {
+    padding: 6px 10px;
+    font-size: 0.74rem;
+    margin-bottom: 16px;
+  }
+
+  .stage-nodes-row {
+    margin-top: 50px;
+    gap: 4px;
+  }
+
+  .stage-connecting-wire {
+    top: 80px;
+    left: 8%;
+    right: 8%;
+  }
+
+  .node-beacon-ring {
+    width: 12px;
+    height: 12px;
+    border-width: 2px;
+    margin-bottom: 8px;
+  }
+
+  .node-box-enclosure {
+    padding: 8px 4px;
+    border-radius: 8px;
+  }
+
+  .node-icon-wrapper {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 4px;
+  }
+
+  .node-icon-wrapper svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .node-main-title {
+    font-size: 0.68rem;
+    line-height: 1.2;
+  }
+
+  .node-sub-title {
+    font-size: 0.58rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .node-live-tag {
+    font-size: 0.52rem;
+    padding: 1px 4px;
+    top: -7px;
+  }
+
+  .flying-packet-chip {
+    font-size: 0.65rem;
+    padding: 4px 8px;
+    max-width: 82%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stage-deep-explanation-container {
+    padding: 12px;
+    margin-top: 20px;
+  }
+
+  .stage-deep-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .deep-title-group {
+    font-size: 0.78rem;
+  }
+
+  .deep-explanation-paragraph {
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .deep-security-action-row {
+    font-size: 0.76rem;
+    padding: 6px 10px;
+  }
+
+  .headers-terminal-box {
+    font-size: 0.72rem;
+    padding: 8px 10px;
+    overflow-x: auto;
+  }
+
+  /* Scrubber Toolbar on Small Screens */
+  .stage-scrubber-deck {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .scrubber-controls-left {
+    order: 1;
+    gap: 6px;
+  }
+
+  .scrubber-speed-right {
+    order: 2;
+    margin-left: auto;
+    gap: 6px;
+  }
+
+  .scrubber-range-middle {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+    margin: 4px 0 0;
+  }
+
+  .btn-skip-step, .btn-restart-pill {
+    padding: 4px 8px;
+    font-size: 0.72rem;
+  }
+
+  .speed-select-drop {
+    font-size: 0.72rem;
+    padding: 2px 4px;
+  }
+
+  /* Insight Cards on Mobile */
+  .insight-panel-card {
+    padding: 14px 12px;
+  }
+
+  .what-happening-text {
+    font-size: 0.83rem;
+  }
+
+  .why-it-matters-box, .security-verdict-box {
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+
+  .term-definition-box {
+    padding: 8px 10px;
+  }
+
+  .term-name-tag {
+    font-size: 0.76rem;
+  }
+
+  .term-meaning-text {
+    font-size: 0.78rem;
+  }
+
+  /* Takeaway Card on Mobile */
+  .interview-takeaway-wide-card {
+    padding: 14px 12px;
+  }
+
+  .takeaway-header-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .takeaway-action-buttons {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .takeaway-btn-voice, .takeaway-btn-copy {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .takeaway-verdict-quote {
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+
+  /* Navigation Footer on Mobile */
+  .pagination-nav-deck {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .nav-deck-btn {
+    width: 100%;
+    padding: 12px 14px;
+  }
+
+  /* SayIt & Challenge Views on Mobile */
+  .speech-script-text {
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .practice-timer-bar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .challenge-studio-card {
+    padding: 16px 12px;
+  }
+
+  .challenge-question-title {
+    font-size: 1.05rem;
+  }
+
+  .challenge-option-btn {
+    padding: 10px 12px;
+    font-size: 0.84rem;
+  }
+}
