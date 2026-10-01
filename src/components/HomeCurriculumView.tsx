@@ -28,9 +28,8 @@ interface HomeCurriculumViewProps {
 interface LevelConfig {
   id: string;
   levelNumber: number;
-  title: string;
+  name: string;
   badge: string;
-  difficulty: 'Basic' | 'Intermediate' | 'Advanced';
   colorTheme: 'emerald' | 'blue' | 'purple';
   targetAudience: string;
   description: string;
@@ -54,11 +53,10 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
 
   const levels: LevelConfig[] = [
     {
-      id: 'level-1-basic',
+      id: 'level-1-core',
       levelNumber: 1,
-      title: 'Level 1: Basic / Core Fundamentals',
-      badge: 'Junior to Mid-Level',
-      difficulty: 'Basic',
+      name: 'Core Protocol Foundations',
+      badge: 'Junior to Mid-Level • Browser & Web Fundamentals',
       colorTheme: 'emerald',
       targetAudience: 'Software Engineers, Frontend/Fullstack Developers & Security Analysts',
       description: 'Foundational web protocol security rules: browser origin sandboxes, CORS preflight negotiations, cookie isolation attributes, and fundamental injection defenses.',
@@ -66,11 +64,10 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
       questions: level1Questions,
     },
     {
-      id: 'level-2-intermediate',
+      id: 'level-2-defenses',
       levelNumber: 2,
-      title: 'Level 2: Intermediate Defenses',
-      badge: 'Mid-Level to Senior',
-      difficulty: 'Intermediate',
+      name: 'Identity & Defense Systems',
+      badge: 'Mid-Level to Senior • Authentication & AuthZ',
       colorTheme: 'blue',
       targetAudience: 'Senior Engineers, Backend Architects & Security Engineers',
       description: 'Token lifecycle security, cryptographic signature verification, OAuth 2.0 PKCE authentication flows, SSRF cloud perimeter defense, and anti-CSRF token synchronization.',
@@ -78,11 +75,10 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
       questions: level2Questions,
     },
     {
-      id: 'level-3-advanced',
+      id: 'level-3-architectures',
       levelNumber: 3,
-      title: 'Level 3: Advanced Architectures',
-      badge: 'Staff & Principal Architect',
-      difficulty: 'Advanced',
+      name: 'Zero-Trust & Distributed Systems',
+      badge: 'Staff & Principal • Enterprise Architectures',
       colorTheme: 'purple',
       targetAudience: 'Staff Engineers, Principal Architects & Head of Security',
       description: 'Zero-trust microservice communication with Mutual TLS (mTLS), API Gateway phantom token patterns, distributed rate limiting, and GraphQL query depth DOS defense.',
@@ -191,13 +187,13 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
         </div>
       </section>
 
-      {/* 3-Column Difficulty Panel Layout */}
+      {/* 3-Column Level Progression Panels */}
       <section className="curriculum-levels-section">
         <div className="section-header-row">
           <div>
-            <h2 className="section-title">Explore by Difficulty Level</h2>
+            <h2 className="section-title">Explore by Progression Level</h2>
             <p className="section-subtitle">
-              Choose your starting tier. Each level features interactive visual diagrams and benchmark interview spoken scripts.
+              Progressive mastery from core browser protocols to distributed zero-trust security architectures.
             </p>
           </div>
         </div>
@@ -206,15 +202,18 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
           {levels.map((lvl) => {
             const lvlMastered = lvl.questions.filter(q => questionStatuses[q.slug] === "mastered").length;
             const firstLvlQ = lvl.questions[0];
-            const diffLabel = lvl.difficulty === "Basic" ? "Easy" : lvl.difficulty === "Intermediate" ? "Medium" : "Hard";
 
             return (
               <div key={lvl.id} className={`diff-col-panel ${lvl.colorTheme}`}>
                 <div className="diff-col-header">
                   <div className="diff-col-title-row">
-                    <span className={`diff-col-label ${lvl.colorTheme}`}>{diffLabel}</span>
+                    <div className="diff-col-level-badge-wrap">
+                      <span className={`diff-col-tag ${lvl.colorTheme}`}>Level {lvl.levelNumber}</span>
+                      <h3 className="diff-col-name">{lvl.name}</h3>
+                    </div>
                     <span className="diff-col-count">{lvlMastered} / {lvl.questions.length}</span>
                   </div>
+                  <div className="diff-col-audience">{lvl.badge}</div>
                   <p className="diff-col-desc">{lvl.description}</p>
                   {firstLvlQ && (
                     <button
@@ -222,7 +221,7 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
                       className={`diff-start-btn ${lvl.colorTheme}`}
                       onClick={() => navigate(`/${firstLvlQ.slug}`)}
                     >
-                      Start {diffLabel} <ArrowRight size={13} />
+                      Start Level {lvl.levelNumber} <ArrowRight size={13} />
                     </button>
                   )}
                 </div>
