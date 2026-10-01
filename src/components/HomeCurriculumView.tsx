@@ -53,10 +53,10 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
 
   const levels: LevelConfig[] = [
     {
-      id: 'level-1-core',
+      id: 'level-1-basic',
       levelNumber: 1,
-      name: 'Core Protocol Foundations',
-      badge: 'Junior to Mid-Level • Browser & Web Fundamentals',
+      name: 'Basic',
+      badge: 'Core Fundamentals • 7 Modules',
       colorTheme: 'emerald',
       targetAudience: 'Software Engineers, Frontend/Fullstack Developers & Security Analysts',
       description: 'Foundational web protocol security rules: browser origin sandboxes, CORS preflight negotiations, cookie isolation attributes, and fundamental injection defenses.',
@@ -64,10 +64,10 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
       questions: level1Questions,
     },
     {
-      id: 'level-2-defenses',
+      id: 'level-2-intermediate',
       levelNumber: 2,
-      name: 'Identity & Defense Systems',
-      badge: 'Mid-Level to Senior • Authentication & AuthZ',
+      name: 'Intermediate',
+      badge: 'Defense Engineering • 7 Modules',
       colorTheme: 'blue',
       targetAudience: 'Senior Engineers, Backend Architects & Security Engineers',
       description: 'Token lifecycle security, cryptographic signature verification, OAuth 2.0 PKCE authentication flows, SSRF cloud perimeter defense, and anti-CSRF token synchronization.',
@@ -75,10 +75,10 @@ export const HomeCurriculumView: React.FC<HomeCurriculumViewProps> = ({
       questions: level2Questions,
     },
     {
-      id: 'level-3-architectures',
+      id: 'level-3-advanced',
       levelNumber: 3,
-      name: 'Zero-Trust & Distributed Systems',
-      badge: 'Staff & Principal • Enterprise Architectures',
+      name: 'Advanced',
+      badge: 'Architectures & Systems • 7 Modules',
       colorTheme: 'purple',
       targetAudience: 'Staff Engineers, Principal Architects & Head of Security',
       description: 'Zero-trust microservice communication with Mutual TLS (mTLS), API Gateway phantom token patterns, distributed rate limiting, and GraphQL query depth DOS defense.',
