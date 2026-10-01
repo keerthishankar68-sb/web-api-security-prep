@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Bookmark, Circle, Home } from 'lucide-react';
 import type { QuestionData } from '../types/question';
 
 interface SidebarProps {
@@ -9,7 +9,7 @@ interface SidebarProps {
   onSearchChange?: (term: string) => void;
   isOpen: boolean;
   onClose: () => void;
-  viewedSlugs: Set<string>;
+  questionStatuses: Record<string, 'mastered' | 'review' | 'unseen'>;
 }
 
 interface TierGroup {
@@ -23,19 +23,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
   searchTerm,
   isOpen,
   onClose,
-  viewedSlugs,
+  questionStatuses,
 }) => {
+  const [statusFilter, setStatusFilter] = useState<'all' | 'mastered' | 'review' | 'unseen'>('all');
+
   const filtered = questions.filter((q) => {
     const term = searchTerm.toLowerCase();
-    return (
+    const matchesSearch =
       q.title.toLowerCase().includes(term) ||
       q.category.toLowerCase().includes(term) ||
-      q.keywords.some((k) => k.toLowerCase().includes(term))
-    );
+      q.keywords.some((k) => k.toLowerCase().includes(term));
+
+    if (!matchesSearch) return false;
+
+    const qStatus = questionStatuses[q.slug] || 'unseen';
+    if (statusFilter === 'all') return true;
+    return qStatus === statusFilter;
   });
 
-  const completedCount = questions.filter((q) => viewedSlugs.has(q.slug)).length;
-  const progressPercent = Math.round((completedCount / questions.length) * 100);
+  const masteredCount = questions.filter((q) => questionStatuses[q.slug] === 'mastered').length;
+  const reviewCount = questions.filter((q) => questionStatuses[q.slug] === 'review').length;
+  const progressPercent = Math.round((masteredCount / Math.max(1, questions.length)) * 100);
 
   const tiers: TierGroup[] = [
     { tier: 'Core', label: 'CORE FUNDAMENTALS', questions: [] },
@@ -67,20 +75,59 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
+        {/* Readiness Meter Bar */}
         <div className="sidebar-progress-box">
           <div className="progress-stats-row">
-            <span className="meter-count">{completedCount} Mastered</span>
+            <span className="meter-count">{masteredCount} of {questions.length} Mastered</span>
             <span className="meter-percent">{progressPercent}%</span>
           </div>
           <div className="progress-track-bg">
             <div className="progress-fill-bar" style={{ width: `${progressPercent}%` }} />
           </div>
         </div>
+
+        {/* Status Filter Tabs */}
+        <div className="sidebar-status-filter-pills">
+          <button
+            type="button"
+            className={`status-tab-pill ${statusFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('all')}
+          >
+            All ({questions.length})
+          </button>
+          <button
+            type="button"
+            className={`status-tab-pill mastered ${statusFilter === 'mastered' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('mastered')}
+          >
+            ✓ Mastered ({masteredCount})
+          </button>
+          <button
+            type="button"
+            className={`status-tab-pill review ${statusFilter === 'review' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('review')}
+          >
+            ★ Review ({reviewCount})
+          </button>
+        </div>
       </div>
 
       <nav className="sidebar-questions-scroll" aria-label="Question Navigation">
+        <NavLink
+          to="/"
+          end
+          onClick={onClose}
+          className={({ isActive }) => `sidebar-home-link ${isActive ? 'active' : ''}`}
+          title="Curriculum Levels Overview"
+        >
+          <Home size={15} />
+          <span>All Levels &amp; Curricula</span>
+        </NavLink>
+        
         {filtered.length === 0 ? (
-          <div className="empty-search-state">No interview questions match your filter.</div>
+          <div className="empty-search-state">
+            No questions found in "{statusFilter}" filter.
+          </div>
         ) : (
           tiers.map((grp) => {
             if (grp.questions.length === 0) return null;
@@ -94,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className="tier-questions-list">
                   {grp.questions.map((q) => {
-                    const isCompleted = viewedSlugs.has(q.slug);
+                    const status = questionStatuses[q.slug] || 'unseen';
                     const numStr = q.id.toString().padStart(2, '0');
 
                     return (
@@ -108,9 +155,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           <span className="q-num-tag">{numStr}</span>
                           <span className="q-title-label">{q.title}</span>
                         </div>
-                        {isCompleted && (
-                          <CheckCircle2 size={16} className="q-check-icon" />
-                        )}
+                        <div className="sidebar-q-right">
+                          {status === 'mastered' && (
+                            <span title="Mastered"><CheckCircle2 size={15} className="q-check-icon mastered" /></span>
+                          )}
+                          {status === 'review' && (
+                            <span title="Needs Review"><Bookmark size={15} className="q-bookmark-icon review" /></span>
+                          )}
+                          {status === 'unseen' && (
+                            <span title="Unseen"><Circle size={10} className="q-unseen-dot" /></span>
+                          )}
+                        </div>
                       </NavLink>
                     );
                   })}
