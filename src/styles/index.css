@@ -6014,7 +6014,7 @@ img, svg, canvas, pre, code {
   }
 
   .level-questions-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 12px;
   }
 }
@@ -6729,4 +6729,5 @@ img, svg, canvas, pre, code {
     text-overflow: ellipsis;
   }
 }
+
 
