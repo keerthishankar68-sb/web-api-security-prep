@@ -6018,3 +6018,714 @@ img, svg, canvas, pre, code {
     gap: 12px;
   }
 }
+
+/* ==========================================================================
+   RESPONSIVENESS FIX-UP LAYER
+   Supplies missing base styles for classes already rendered by components
+   and retargets the landscape/portrait rules above to the real class names.
+   Purely additive; preserves all existing behavior and dark-theme tokens.
+   ========================================================================== */
+
+/* --- Missing base styles for classes used in JSX but absent from CSS --- */
+
+/* HomeCurriculumView hero action deck (JSX: hero-action-deck / hero-start-primary-btn / hero-secondary-tools / hero-lead-text / arrow-pulse) */
+.hero-lead-text {
+  font-size: 1rem;
+  color: #94a3b8;
+  max-width: 760px;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.hero-action-deck {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.hero-start-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border: none;
+  border-radius: 12px;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.hero-start-primary-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 28px rgba(37, 99, 235, 0.6);
+}
+
+.hero-start-primary-btn .arrow-pulse {
+  transition: transform 0.2s;
+  animation: arrowPulse 1.8s infinite ease-in-out;
+}
+
+@keyframes arrowPulse {
+  0%, 100% { transform: translateX(0); opacity: 1; }
+  50% { transform: translateX(4px); opacity: 0.7; }
+}
+
+.hero-start-primary-btn:hover .arrow-pulse {
+  transform: translateX(4px);
+}
+
+.hero-secondary-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* FlashcardsModal: card-tier-pill / card-back-footer / hint-text / target-icon / phrase-check */
+.card-tier-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #c4b5fd;
+  background: rgba(124, 58, 237, 0.18);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+
+.card-tier-pill.core { color: #34d399; background: rgba(16, 185, 129, 0.18); border-color: rgba(16, 185, 129, 0.3); }
+.card-tier-pill.intermediate { color: #93c5fd; background: rgba(37, 99, 235, 0.18); border-color: rgba(37, 99, 235, 0.3); }
+.card-tier-pill.advanced { color: #c4b5fd; background: rgba(124, 58, 237, 0.18); border-color: rgba(124, 58, 237, 0.3); }
+
+.card-back-footer {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.target-icon {
+  color: #38bdf8;
+}
+
+.hint-text {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.phrase-check {
+  flex-shrink: 0;
+}
+
+/* SayItView: scorecard-verdict-tag wrapper */
+.scorecard-verdict-tag {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* VisualFlowView small defaults already covered via parent; ensure these don't overflow */
+.pill-title-text {
+  white-space: nowrap;
+}
+
+.zap-sparkle {
+  flex-shrink: 0;
+}
+
+/* --- Header small-screen wrapping (<= 560px) --- */
+@media (max-width: 560px) {
+  .app-header {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 12px;
+    gap: 8px;
+  }
+
+  .header-left {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 10px;
+  }
+
+  /* Compact the readiness pill on small screens instead of hiding useful info */
+  .readiness-meter-pill {
+    padding: 3px 8px;
+    font-size: 0.68rem;
+    gap: 5px;
+  }
+
+  .readiness-meter-fraction {
+    display: none;
+  }
+
+  .header-center {
+    flex: 1 1 100%;
+    max-width: 100%;
+    margin: 0;
+    order: 3;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  /* Collapse flashcards + export button labels to icons only on tight screens */
+  .header-tool-btn.flashcards span,
+  .header-tool-btn.export .tool-btn-text {
+    display: none;
+  }
+
+  .header-tool-btn.flashcards,
+  .header-tool-btn.export {
+    padding: 6px 8px;
+  }
+}
+
+/* --- Question status toolbar stacks on small screens --- */
+@media (max-width: 640px) {
+  .question-status-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .status-selector-group {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .status-toolbar-label {
+    width: 100%;
+    margin-bottom: 2px;
+  }
+
+  .question-status-btn {
+    flex: 1 1 auto;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 0.72rem;
+  }
+
+  .status-quick-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .quick-action-btn {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 0.7rem;
+  }
+}
+
+/* --- Hero stats strip: 2-col on small phones, smaller metrics --- */
+@media (max-width: 480px) {
+  .hero-stats-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .hero-stat-card .stat-value {
+    font-size: 1.2rem;
+  }
+
+  .hero-stat-card .stat-label {
+    font-size: 0.66rem;
+  }
+
+  .hero-stat-card .stat-sub {
+    font-size: 0.66rem;
+  }
+
+  .hero-badge-pill {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+  }
+
+  .hero-start-primary-btn {
+    padding: 10px 18px;
+    font-size: 0.9rem;
+    gap: 10px;
+  }
+
+  .hero-start-primary-btn .btn-icon-bubble {
+    width: 26px;
+    height: 26px;
+  }
+
+  .hero-tool-btn {
+    padding: 8px 12px;
+    font-size: 0.76rem;
+  }
+}
+
+/* --- Tabs switcher: always scrollable on narrow widths, tighter on <=420px --- */
+.view-tabs-switcher {
+  max-width: 100%;
+}
+
+@media (max-width: 860px) {
+  .view-tabs-switcher {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .view-tabs-switcher::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .tab-nav-btn {
+    padding: 7px 9px;
+    font-size: 0.74rem;
+    gap: 5px;
+  }
+
+  .tab-nav-btn svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+}
+
+/* --- Wiretap modal: fit small + landscape screens --- */
+@media (max-width: 640px) {
+  .wiretap-modal-overlay {
+    padding: 12px;
+  }
+
+  .wiretap-modal-window {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 12px;
+  }
+
+  .wiretap-modal-header {
+    padding: 12px 14px;
+  }
+
+  .wiretap-modal-title h4 {
+    font-size: 0.86rem;
+  }
+
+  .wiretap-subtitle {
+    font-size: 0.68rem;
+  }
+
+  .wiretap-nav-tabs {
+    padding: 6px 10px;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .wiretap-nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .wiretap-tab-btn {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .wiretap-modal-content {
+    padding: 14px;
+  }
+
+  /* Hex dump: collapse ascii column to keep table within viewport */
+  .hex-dump-view {
+    padding: 10px;
+    font-size: 0.66rem;
+    overflow-x: auto;
+  }
+
+  .col-offset {
+    width: 46px;
+  }
+
+  .col-ascii {
+    width: 90px;
+  }
+
+  .hex-offset {
+    width: 46px;
+  }
+
+  .hex-ascii {
+    width: 90px;
+  }
+
+  .wire-meta-row {
+    gap: 6px;
+  }
+
+  .meta-badge-protocol,
+  .meta-badge-method,
+  .meta-badge-target {
+    font-size: 0.66rem;
+    padding: 2px 6px;
+  }
+
+  .wire-code-block {
+    font-size: 0.68rem;
+    padding: 10px;
+  }
+
+  .sop-tuple-table {
+    font-size: 0.72rem;
+  }
+
+  .sop-tuple-table th,
+  .sop-tuple-table td {
+    padding: 6px 8px;
+  }
+}
+
+/* --- Flashcards modal: small-screen + landscape fit (real class names) --- */
+@media (max-width: 640px) {
+  .flashcards-modal-overlay {
+    padding: 12px;
+    align-items: center;
+  }
+
+  .flashcards-modal-container {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 14px;
+  }
+
+  .flashcards-modal-header {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .flashcards-title-wrap h3 {
+    font-size: 0.9rem;
+  }
+
+  .deck-progress-subtitle {
+    font-size: 0.68rem;
+  }
+
+  .flashcards-top-actions {
+    gap: 6px;
+  }
+
+  .deck-filter-pill {
+    padding: 4px 8px;
+    font-size: 0.68rem;
+  }
+
+  .flashcard-3d-scene {
+    padding: 16px;
+    min-height: 300px;
+  }
+
+  .flashcard-flipper {
+    min-height: 260px;
+  }
+
+  .flashcard-face {
+    padding: 18px;
+    border-radius: 12px;
+  }
+
+  .card-question-title {
+    font-size: 1.2rem;
+  }
+
+  .card-takeaway-quote {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  .flashcards-bottom-deck {
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .status-toggle-buttons,
+  .navigation-arrows-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .btn-status-toggle,
+  .btn-card-nav {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 8px 10px;
+    font-size: 0.76rem;
+  }
+}
+
+@media screen and (orientation: landscape) and (max-height: 540px) {
+  .flashcards-modal-overlay {
+    padding: 8px;
+    align-items: center;
+  }
+
+  .flashcards-modal-container {
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
+    border-radius: 12px;
+  }
+
+  .flashcards-modal-header {
+    padding: 10px 14px;
+  }
+
+  .flashcard-3d-scene {
+    padding: 14px;
+    min-height: 220px;
+  }
+
+  .flashcard-flipper {
+    min-height: 200px;
+  }
+
+  .flashcard-face {
+    padding: 14px 18px;
+  }
+
+  .card-question-title {
+    font-size: 1.05rem;
+    margin: 6px 0;
+  }
+
+  .card-takeaway-quote {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin-bottom: 10px;
+  }
+
+  .flashcards-bottom-deck {
+    padding: 10px 14px;
+  }
+}
+
+/* --- Command palette: fit short landscape screens --- */
+@media screen and (orientation: landscape) and (max-height: 540px) {
+  .command-palette-overlay {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    align-items: flex-start;
+  }
+
+  .command-palette-window {
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
+  }
+
+  .palette-results-list {
+    max-height: 45vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .command-palette-overlay {
+    padding-top: 8vh;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .command-palette-window {
+    max-width: 100%;
+  }
+
+  .palette-search-header {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .palette-input {
+    font-size: 0.88rem;
+  }
+
+  .palette-results-list {
+    max-height: 50vh;
+  }
+
+  .palette-footer-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 14px;
+  }
+
+  .palette-footer-shortcuts {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+/* --- Landscape protocol-diagram node fixes (short-height screens) --- */
+@media screen and (orientation: landscape) and (max-height: 540px) {
+  .stage-nodes-row {
+    margin-top: 28px;
+    gap: 6px;
+  }
+
+  .stage-connecting-wire {
+    top: 54px;
+  }
+
+  .node-beacon-ring {
+    width: 12px;
+    height: 12px;
+    border-width: 2px;
+    margin-bottom: 8px;
+  }
+
+  .node-box-enclosure {
+    padding: 6px 4px;
+  }
+
+  .node-icon-wrapper {
+    width: 26px;
+    height: 26px;
+    margin-bottom: 3px;
+  }
+
+  .node-icon-wrapper svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .node-main-title {
+    font-size: 0.66rem;
+    line-height: 1.2;
+  }
+
+  .node-sub-title {
+    font-size: 0.56rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .node-live-tag {
+    font-size: 0.52rem;
+    padding: 1px 4px;
+    top: -7px;
+  }
+
+  .flying-packet-chip {
+    font-size: 0.64rem;
+    padding: 3px 7px;
+    max-width: 80%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stage-deep-explanation-container {
+    margin-top: 16px;
+    padding: 12px 14px;
+  }
+
+  .deep-explanation-paragraph {
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .headers-terminal-box {
+    font-size: 0.7rem;
+    padding: 8px 10px;
+  }
+}
+
+/* --- Ultra-narrow phones (<= 380px): tighten flashcard + hero --- */
+@media (max-width: 380px) {
+  .flashcard-3d-scene {
+    padding: 12px;
+    min-height: 260px;
+  }
+
+  .flashcard-flipper {
+    min-height: 230px;
+  }
+
+  .flashcard-face {
+    padding: 14px;
+  }
+
+  .card-question-title {
+    font-size: 1.05rem;
+  }
+
+  .card-takeaway-quote {
+    font-size: 0.78rem;
+  }
+
+  .card-vocab-pill {
+    font-size: 0.66rem;
+    padding: 2px 6px;
+  }
+
+  .hero-stats-strip {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .hero-action-deck {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .hero-start-primary-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-secondary-tools {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .hero-tool-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* --- Defensive: ensure no horizontal overflow from stage diagram on any width --- */
+.interactive-stage-card,
+.flow-stage-column,
+.flow-split-grid,
+.visual-split-workspace {
+  min-width: 0;
+}
+
+/* --- Ensure nav deck buttons never overflow on very small screens --- */
+@media (max-width: 380px) {
+  .nav-deck-btn {
+    padding: 10px 12px;
+  }
+
+  .deck-target-title {
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
