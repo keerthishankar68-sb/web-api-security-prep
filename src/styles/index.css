@@ -4911,15 +4911,15 @@ body.dark-mode {
   }
 }
 
-/* Hero Section */
+/* Hero Section - Light Mode Default */
 .curriculum-hero-banner {
   position: relative;
-  background: linear-gradient(135deg, #090e1a 0%, #0f172a 100%);
-  border: 1px solid #1e293b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 36px 32px;
-  color: #ffffff;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+  color: #0f172a;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
   margin-bottom: 32px;
   overflow: hidden;
 }
@@ -4946,7 +4946,7 @@ body.dark-mode {
   font-size: 2.1rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  color: #f8fafc;
+  color: #0f172a;
   margin-bottom: 12px;
   line-height: 1.25;
 }
@@ -5042,20 +5042,20 @@ body.dark-mode {
   align-items: center;
   gap: 7px;
   padding: 10px 16px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #e2e8f0;
+  color: #334155;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .hero-tool-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #ffffff;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
   transform: translateY(-1px);
 }
 
@@ -5077,7 +5077,7 @@ body.dark-mode {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   padding-top: 24px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #e2e8f0;
 }
 
 .hero-stat-card {
@@ -5097,7 +5097,7 @@ body.dark-mode {
 .stat-value {
   font-size: 1.45rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: #0f172a;
 }
 
 .stat-value.highlight-green {
@@ -6329,7 +6329,7 @@ code {
 /* HomeCurriculumView hero action deck (JSX: hero-action-deck / hero-start-primary-btn / hero-secondary-tools / hero-lead-text / arrow-pulse) */
 .hero-lead-text {
   font-size: 1rem;
-  color: #94a3b8;
+  color: #475569;
   max-width: 760px;
   line-height: 1.6;
   margin-bottom: 28px;
@@ -7212,22 +7212,24 @@ code {
 
 /* Dark mode already matches (dark bg assumed) */
 
+
 /* ===================================================
-   UNIQUE CYBERSECURITY LEVEL COMMAND DECK
-   Interactive Stepper Rail & Active Level Stage
+   CURRICULUM LEVEL COMMAND DECK & 3-COLUMN
+   White Light Theme (Default) + Dark Mode (.dark)
    =================================================== */
 
+/* Kicker & Toggle */
 .section-kicker {
   display: inline-block;
   font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
+  color: #0284c7;
+  background: #e0f2fe;
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid rgba(56, 189, 248, 0.25);
+  border: 1px solid #bae6fd;
   margin-bottom: 6px;
 }
 
@@ -7235,10 +7237,10 @@ code {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: #090e1a;
+  background: #f1f5f9;
   padding: 4px;
   border-radius: 8px;
-  border: 1px solid #1e293b;
+  border: 1px solid #e2e8f0;
 }
 
 .view-mode-toggle-btn {
@@ -7257,13 +7259,13 @@ code {
 }
 
 .view-mode-toggle-btn:hover {
-  color: #f1f5f9;
+  color: #0f172a;
 }
 
 .view-mode-toggle-btn.active {
-  background: #1e293b;
-  color: #38bdf8;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* Stepper Rail */
@@ -7284,8 +7286,8 @@ code {
 .level-stepper-card {
   display: flex;
   flex-direction: column;
-  background: #0c1424;
-  border: 1px solid #1e293b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 12px;
   padding: 16px;
   text-align: left;
@@ -7293,6 +7295,7 @@ code {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .level-stepper-card::before {
@@ -7312,27 +7315,27 @@ code {
 
 .level-stepper-card:hover {
   transform: translateY(-2px);
-  border-color: #334155;
-  background: #0f192c;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
 }
 
 .level-stepper-card.is-active {
-  background: #0f1c33;
-  border-color: #38bdf8;
-  box-shadow: 0 8px 24px -4px rgba(56, 189, 248, 0.15);
+  background: #ffffff;
+  box-shadow: 0 6px 20px -2px rgba(0, 0, 0, 0.08);
 }
 
 .level-stepper-card.is-active.emerald {
   border-color: #10b981;
-  box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.18);
+  background: #f0fdf4;
 }
 .level-stepper-card.is-active.blue {
   border-color: #3b82f6;
-  box-shadow: 0 8px 24px -4px rgba(59, 130, 246, 0.18);
+  background: #eff6ff;
 }
 .level-stepper-card.is-active.purple {
   border-color: #8b5cf6;
-  box-shadow: 0 8px 24px -4px rgba(139, 92, 246, 0.18);
+  background: #faf5ff;
 }
 
 .stepper-card-top {
@@ -7355,19 +7358,19 @@ code {
 }
 
 .level-stepper-card.emerald .stepper-badge-pill {
-  background: rgba(16, 185, 129, 0.15);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.25);
 }
 .level-stepper-card.blue .stepper-badge-pill {
-  background: rgba(59, 130, 246, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.25);
 }
 .level-stepper-card.purple .stepper-badge-pill {
-  background: rgba(139, 92, 246, 0.15);
-  color: #c084fc;
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.12);
+  color: #7c3aed;
+  border: 1px solid rgba(139, 92, 246, 0.25);
 }
 
 .stepper-mastery-tag {
@@ -7390,15 +7393,15 @@ code {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
 
 .stepper-main-title {
   font-size: 0.98rem;
   font-weight: 700;
-  color: #f8fafc;
+  color: #0f172a;
   margin: 0 0 4px;
   line-height: 1.3;
 }
@@ -7420,7 +7423,7 @@ code {
 
 .stepper-progress-bar {
   height: 4px;
-  background: #1e293b;
+  background: #e2e8f0;
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -7440,39 +7443,34 @@ code {
   display: block;
   font-size: 0.7rem;
   font-weight: 600;
-  color: #475569;
+  color: #94a3b8;
   text-align: right;
   transition: color 0.15s ease;
 }
 
 .level-stepper-card.is-active .stepper-click-hint {
-  color: #38bdf8;
+  color: #0284c7;
 }
 
-/* ===================================================
-   Active Level Showcase Stage
-   =================================================== */
-
+/* Active Level Stage */
 .active-level-stage {
-  background: #0b1220;
-  border: 1px solid #1e293b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
   padding: 24px;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
 }
 
 .active-level-stage.emerald {
-  border-color: rgba(16, 185, 129, 0.3);
-  box-shadow: 0 16px 48px -12px rgba(16, 185, 129, 0.08);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 .active-level-stage.blue {
-  border-color: rgba(59, 130, 246, 0.3);
-  box-shadow: 0 16px 48px -12px rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.35);
 }
 .active-level-stage.purple {
-  border-color: rgba(139, 92, 246, 0.3);
-  box-shadow: 0 16px 48px -12px rgba(139, 92, 246, 0.08);
+  border-color: rgba(139, 92, 246, 0.35);
 }
 
 .stage-hero-banner {
@@ -7480,7 +7478,7 @@ code {
   justify-content: space-between;
   gap: 32px;
   padding-bottom: 24px;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid #e2e8f0;
   margin-bottom: 24px;
 }
 
@@ -7511,23 +7509,23 @@ code {
   border-radius: 6px;
 }
 
-.stage-level-pill.emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
-.stage-level-pill.blue    { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
-.stage-level-pill.purple  { background: rgba(139, 92, 246, 0.15); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.3); }
+.stage-level-pill.emerald { background: rgba(16, 185, 129, 0.12); color: #059669; border: 1px solid rgba(16, 185, 129, 0.25); }
+.stage-level-pill.blue    { background: rgba(59, 130, 246, 0.12); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.25); }
+.stage-level-pill.purple  { background: rgba(139, 92, 246, 0.12); color: #7c3aed; border: 1px solid rgba(139, 92, 246, 0.25); }
 
 .stage-audience-tag {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #64748b;
   font-weight: 500;
 }
 
 .stage-headline {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: #0f172a;
   letter-spacing: -0.01em;
   margin: 0 0 8px;
   line-height: 1.3;
@@ -7535,7 +7533,7 @@ code {
 
 .stage-description {
   font-size: 0.86rem;
-  color: #94a3b8;
+  color: #475569;
   line-height: 1.6;
   margin: 0 0 16px;
   max-width: 780px;
@@ -7566,11 +7564,11 @@ code {
 .stage-chip-item {
   font-size: 0.72rem;
   font-weight: 600;
-  color: #cbd5e1;
-  background: rgba(30, 41, 59, 0.7);
+  color: #334155;
+  background: #f1f5f9;
   padding: 3px 8px;
   border-radius: 4px;
-  border: 1px solid rgba(51, 65, 85, 0.6);
+  border: 1px solid #e2e8f0;
 }
 
 .stage-hero-cta {
@@ -7582,8 +7580,8 @@ code {
 }
 
 .stage-metric-box {
-  background: #090e1a;
-  border: 1px solid #1e293b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 14px 16px;
 }
@@ -7591,7 +7589,7 @@ code {
 .stage-metric-val {
   font-size: 1.6rem;
   font-weight: 800;
-  color: #f8fafc;
+  color: #0f172a;
   line-height: 1;
   margin-bottom: 4px;
 }
@@ -7607,7 +7605,7 @@ code {
 
 .stage-meter-track {
   height: 6px;
-  background: #1e293b;
+  background: #e2e8f0;
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 6px;
@@ -7640,12 +7638,12 @@ code {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .stage-launch-btn:hover {
   transform: translateY(-1px);
-  filter: brightness(1.1);
+  filter: brightness(1.08);
 }
 
 .stage-launch-btn.emerald { background: #10b981; color: #fff; }
@@ -7665,7 +7663,7 @@ code {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: #475569;
 }
 
 .stage-deck-count {
@@ -7689,20 +7687,21 @@ code {
 .stage-card-link {
   display: flex;
   flex-direction: column;
-  background: #090e1a;
-  border: 1px solid #1e293b;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 14px 16px;
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .stage-card-link:hover {
-  background: #0e1728;
+  background: #f8fafc;
   transform: translateY(-2px);
   border-color: #38bdf8;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
 .stage-card-link.emerald:hover { border-color: #10b981; }
@@ -7719,15 +7718,15 @@ code {
 .stage-card-num {
   font-size: 0.72rem;
   font-weight: 800;
-  color: #475569;
+  color: #94a3b8;
   letter-spacing: 0.05em;
 }
 
 .stage-card-cat {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.1);
+  color: #0284c7;
+  background: #e0f2fe;
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -7742,17 +7741,17 @@ code {
 }
 
 .stage-status-chip.mastered {
-  color: #10b981;
+  color: #059669;
 }
 
 .stage-status-chip.review {
-  color: #f59e0b;
+  color: #d97706;
 }
 
 .stage-card-title {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: #0f172a;
   margin: 0 0 4px;
   line-height: 1.35;
 }
@@ -7771,13 +7770,13 @@ code {
 .stage-card-footer {
   margin-top: auto;
   padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  border-top: 1px solid #f1f5f9;
 }
 
 .stage-card-prompt {
   font-size: 0.74rem;
   font-weight: 600;
-  color: #38bdf8;
+  color: #0284c7;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -7786,5 +7785,397 @@ code {
 
 .stage-card-link:hover .stage-card-prompt {
   gap: 8px;
+  color: #0369a1;
+}
+
+/* 3-Column Panels Light Mode */
+.diff-col-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.diff-col-panel.emerald { border-top: 3px solid #10b981; }
+.diff-col-panel.blue    { border-top: 3px solid #3b82f6; }
+.diff-col-panel.purple  { border-top: 3px solid #8b5cf6; }
+
+.diff-col-header {
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.diff-col-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.diff-col-name {
+  font-size: 1.12rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.3;
+}
+.diff-col-name.emerald { color: #059669; }
+.diff-col-name.blue    { color: #2563eb; }
+.diff-col-name.purple  { color: #7c3aed; }
+
+.diff-col-audience {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.diff-col-count {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+.diff-col-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.diff-start-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.diff-start-btn:hover { opacity: 0.88; }
+.diff-start-btn.emerald { background: #10b981; color: #fff; }
+.diff-start-btn.blue    { background: #3b82f6; color: #fff; }
+.diff-start-btn.purple  { background: #8b5cf6; color: #fff; }
+
+.diff-col-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.diff-q-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s ease;
+  background: #ffffff;
+}
+
+.diff-q-row:hover {
+  background: #f8fafc;
+}
+
+.diff-q-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  font-family: monospace;
+}
+
+.diff-q-title {
+  font-size: 0.83rem;
+  color: #0f172a;
+  line-height: 1.35;
+  font-weight: 500;
+  flex: 1;
+}
+
+.diff-q-icon.mastered { color: #10b981; }
+.diff-q-icon.review { color: #f59e0b; }
+
+/* ===================================================
+   DARK OVERRIDES FOR HERO BANNER, COMMAND DECK & 3-COL
+   =================================================== */
+
+.dark .curriculum-hero-banner {
+  background: linear-gradient(135deg, #090e1a 0%, #0f172a 100%);
+  border-color: #1e293b;
+  color: #ffffff;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.dark .hero-badge-pill {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
+.dark .sparkle-gold {
+  color: #f59e0b;
+}
+
+.dark .hero-main-heading {
+  color: #f8fafc;
+}
+
+.dark .hero-lead-text {
+  color: #94a3b8;
+}
+
+.dark .hero-tool-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+}
+
+.dark .hero-tool-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+}
+
+.dark .hero-stats-strip {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .stat-label {
+  color: #94a3b8;
+}
+
+.dark .stat-value {
+  color: #f8fafc;
+}
+
+.dark .stat-value.highlight-green {
+  color: #4ade80;
+}
+
+.dark .stat-value.highlight-amber {
+  color: #fbbf24;
+}
+
+.dark .stat-sub {
+  color: #64748b;
+}
+
+.dark .section-kicker {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.25);
+}
+
+.dark .view-mode-toggle-group {
+  background: #090e1a;
+  border-color: #1e293b;
+}
+
+.dark .view-mode-toggle-btn {
+  color: #64748b;
+}
+
+.dark .view-mode-toggle-btn:hover {
+  color: #f1f5f9;
+}
+
+.dark .view-mode-toggle-btn.active {
+  background: #1e293b;
+  color: #38bdf8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .level-stepper-card {
+  background: #0c1424;
+  border-color: #1e293b;
+  box-shadow: none;
+}
+
+.dark .level-stepper-card:hover {
+  border-color: #334155;
+  background: #0f192c;
+}
+
+.dark .level-stepper-card.is-active {
+  background: #0f1c33;
+}
+.dark .level-stepper-card.is-active.emerald {
+  border-color: #10b981;
+  box-shadow: 0 8px 24px -4px rgba(16, 185, 129, 0.18);
+}
+.dark .level-stepper-card.is-active.blue {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 24px -4px rgba(59, 130, 246, 0.18);
+}
+.dark .level-stepper-card.is-active.purple {
+  border-color: #8b5cf6;
+  box-shadow: 0 8px 24px -4px rgba(139, 92, 246, 0.18);
+}
+
+.dark .stepper-icon-wrap {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark .stepper-main-title {
+  color: #f8fafc;
+}
+
+.dark .stepper-sub-desc {
+  color: #64748b;
+}
+
+.dark .stepper-progress-bar {
+  background: #1e293b;
+}
+
+.dark .stepper-click-hint {
+  color: #475569;
+}
+
+.dark .level-stepper-card.is-active .stepper-click-hint {
+  color: #38bdf8;
+}
+
+.dark .active-level-stage {
+  background: #0b1220;
+  border-color: #1e293b;
+  box-shadow: none;
+}
+.dark .active-level-stage.emerald {
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 16px 48px -12px rgba(16, 185, 129, 0.08);
+}
+.dark .active-level-stage.blue {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 16px 48px -12px rgba(59, 130, 246, 0.08);
+}
+.dark .active-level-stage.purple {
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: 0 16px 48px -12px rgba(139, 92, 246, 0.08);
+}
+
+.dark .stage-hero-banner {
+  border-bottom-color: #1e293b;
+}
+
+.dark .stage-headline {
+  color: #f8fafc;
+}
+
+.dark .stage-description {
+  color: #94a3b8;
+}
+
+.dark .stage-chips-label {
+  color: #64748b;
+}
+
+.dark .stage-chip-item {
+  color: #cbd5e1;
+  background: rgba(30, 41, 59, 0.7);
+  border-color: rgba(51, 65, 85, 0.6);
+}
+
+.dark .stage-metric-box {
+  background: #090e1a;
+  border-color: #1e293b;
+}
+
+.dark .stage-metric-val {
+  color: #f8fafc;
+}
+
+.dark .stage-meter-track {
+  background: #1e293b;
+}
+
+.dark .stage-metric-sub {
+  color: #64748b;
+}
+
+.dark .stage-deck-title {
+  color: #94a3b8;
+}
+
+.dark .stage-card-link {
+  background: #090e1a;
+  border-color: #1e293b;
+  box-shadow: none;
+}
+
+.dark .stage-card-link:hover {
+  background: #0e1728;
+  border-color: #38bdf8;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+.dark .stage-card-title {
+  color: #f1f5f9;
+}
+
+.dark .stage-card-sub {
+  color: #64748b;
+}
+
+.dark .stage-card-num {
+  color: #475569;
+}
+
+.dark .stage-card-cat {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.dark .stage-card-footer {
+  border-top-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark .stage-card-prompt {
+  color: #38bdf8;
+}
+
+.dark .stage-card-link:hover .stage-card-prompt {
   color: #7dd3fc;
+}
+
+.dark .diff-col-panel {
+  background: #0d1526;
+  border-color: #1e293b;
+  box-shadow: none;
+}
+
+.dark .diff-col-name.emerald { color: #10b981; }
+.dark .diff-col-name.blue    { color: #60a5fa; }
+.dark .diff-col-name.purple  { color: #a78bfa; }
+
+.dark .diff-col-header {
+  border-bottom-color: #1e293b;
+}
+
+.dark .diff-col-desc {
+  color: #64748b;
+}
+
+.dark .diff-q-row {
+  border-bottom-color: #0f1929;
+  background: transparent;
+}
+
+.dark .diff-q-row:hover {
+  background: #111d33;
+}
+
+.dark .diff-q-title {
+  color: #e2e8f0;
 }
