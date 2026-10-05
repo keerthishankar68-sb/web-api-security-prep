@@ -8179,3 +8179,426 @@ code {
 .dark .diff-q-title {
   color: #e2e8f0;
 }
+
+
+/* ==========================================================================
+   PRODUCTION MOBILE VIEWPORT & TOUCH OPTIMIZATIONS (< 768px, < 640px, < 480px, < 380px)
+   Zero design alteration — purely responsive layout, touch targets, and overflow guards
+   ========================================================================== */
+
+/* 1. Global Overflow & Mobile Wrapper Protection */
+@media (max-width: 768px) {
+  .curriculum-home-wrapper {
+    padding: 16px 14px 36px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  .app-main-content {
+    padding: 12px 12px 32px;
+    box-sizing: border-box;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+}
+
+/* 2. Hero Banner & Command Deck Scaling on Small Tablets & Large Phones (<= 640px) */
+@media (max-width: 640px) {
+  .curriculum-hero-banner {
+    padding: 22px 18px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+  }
+
+  .hero-main-heading {
+    font-size: 1.55rem;
+    line-height: 1.25;
+    margin-bottom: 10px;
+  }
+
+  .hero-lead-text {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin-bottom: 20px;
+  }
+
+  .hero-action-deck {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .hero-start-primary-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    min-height: 44px;
+  }
+
+  .hero-secondary-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .hero-tool-btn {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+    min-height: 40px;
+    font-size: 0.78rem;
+  }
+
+  /* Command Deck & Active Level Stage */
+  .active-level-stage {
+    padding: 18px 14px;
+    border-radius: 14px;
+  }
+
+  .stage-hero-banner {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    gap: 16px;
+  }
+
+  .stage-headline {
+    font-size: 1.2rem;
+    line-height: 1.3;
+  }
+
+  .stage-description {
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+
+  .stage-metric-box {
+    width: 100%;
+    padding: 12px 14px;
+  }
+
+  .stage-questions-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .stage-card-link {
+    padding: 12px 14px;
+  }
+
+  .level-stepper-card {
+    padding: 14px 14px;
+  }
+}
+
+/* 3. Mobile Viewports (<= 480px, iPhone 14/15 390px, Galaxy 412px, Pixel 7) */
+@media (max-width: 480px) {
+  .curriculum-home-wrapper {
+    padding: 12px 10px 32px;
+  }
+
+  .curriculum-hero-banner {
+    padding: 18px 14px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+  }
+
+  .hero-main-heading {
+    font-size: 1.35rem;
+    line-height: 1.25;
+  }
+
+  .hero-badge-pill {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+    gap: 4px;
+  }
+
+  .active-level-stage {
+    padding: 14px 10px;
+    border-radius: 12px;
+  }
+
+  .stage-tags-row {
+    gap: 6px;
+  }
+
+  .stage-level-pill {
+    font-size: 0.74rem;
+    padding: 3px 8px;
+  }
+
+  .stage-audience-tag {
+    font-size: 0.7rem;
+  }
+
+  .chips-flex-wrap {
+    gap: 4px;
+  }
+
+  .stage-chip-item {
+    font-size: 0.68rem;
+    padding: 2px 7px;
+  }
+
+  /* Question Bar & Top Tabs */
+  .question-top-bar {
+    padding: 8px 10px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .question-meta-group {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .category-tag {
+    font-size: 0.72rem;
+    padding: 3px 8px;
+  }
+
+  .module-badge, .tier-pill {
+    font-size: 0.68rem;
+  }
+
+  .question-title-heading {
+    font-size: 1.15rem;
+    line-height: 1.35;
+    margin-bottom: 6px;
+  }
+
+  .question-subtitle-text {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    margin-bottom: 12px;
+  }
+
+  .tab-nav-btn {
+    min-height: 40px;
+    padding: 6px 10px !important;
+    font-size: 0.74rem !important;
+  }
+
+  /* Interactive Stage & Laser Canvas */
+  .interactive-stage-card {
+    padding: 10px 6px;
+    border-radius: 12px;
+  }
+
+  .stage-telemetry-hud {
+    flex-wrap: wrap;
+    padding: 6px 8px;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .telemetry-route-badge {
+    font-size: 0.72rem;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .telemetry-route-badge .route-text {
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hud-right-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .hud-wiretap-btn {
+    padding: 4px 8px;
+    font-size: 0.68rem;
+    min-height: 32px;
+  }
+
+  .telemetry-status-pill {
+    font-size: 0.68rem;
+    padding: 3px 8px;
+  }
+
+  /* Node enclosures in stage row */
+  .stage-nodes-row {
+    margin-top: 36px;
+    gap: 3px;
+  }
+
+  .node-box-enclosure {
+    padding: 6px 2px;
+    border-radius: 6px;
+    max-width: 24%;
+    min-width: 0;
+  }
+
+  .node-icon-wrapper {
+    width: 26px;
+    height: 26px;
+  }
+
+  .node-icon-wrapper svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .node-main-title {
+    font-size: 0.62rem;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+
+  .node-sub-title {
+    display: none;
+  }
+
+  .node-spec-click-hint {
+    display: none;
+  }
+
+  .node-beacon-ring {
+    width: 10px;
+    height: 10px;
+    margin-bottom: 6px;
+  }
+
+  .flying-packet-chip {
+    font-size: 0.62rem;
+    padding: 3px 8px;
+    max-width: 76%;
+  }
+
+  /* Scrubber Deck Controls */
+  .stage-scrubber-deck {
+    padding: 8px 8px;
+    gap: 6px;
+  }
+
+  .scrubber-controls-left {
+    gap: 5px;
+  }
+
+  .btn-play-circle {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+
+  .btn-skip-step {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-restart-pill {
+    padding: 6px 8px;
+    font-size: 0.68rem;
+    min-height: 36px;
+  }
+
+  .scrubber-speed-right {
+    gap: 4px;
+  }
+
+  .btn-audio-toggle,
+  .btn-narrate-toggle {
+    padding: 6px 8px;
+    font-size: 0.68rem;
+    min-height: 36px;
+  }
+
+  .btn-theater-mode {
+    display: none;
+  }
+
+  .speed-select-drop {
+    height: 36px;
+    font-size: 0.72rem;
+    padding: 2px 4px;
+  }
+
+  /* Spoken Script Studio */
+  .rehearsal-actions-group {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .rehearsal-record-btn {
+    min-height: 44px !important;
+    font-size: 0.82rem !important;
+  }
+
+  .rehearsal-btn.secondary {
+    min-height: 44px !important;
+    font-size: 0.78rem !important;
+    flex: 1 1 calc(50% - 4px) !important;
+    justify-content: center !important;
+  }
+
+  /* Wiretap Inspector Modal on Mobile */
+  .wiretap-modal-window {
+    max-height: 92vh;
+    border-radius: 10px;
+    margin: 4px;
+  }
+
+  .wiretap-modal-content {
+    padding: 10px;
+  }
+
+  .wire-code-block {
+    word-break: break-all;
+    white-space: pre-wrap;
+    font-size: 0.66rem;
+    padding: 8px;
+    max-height: 45vh;
+  }
+}
+
+/* 4. Ultra-Narrow Phones (<= 380px, iPhone SE 1st gen, Galaxy Fold outer) */
+@media (max-width: 380px) {
+  .curriculum-home-wrapper {
+    padding: 10px 8px 24px;
+  }
+
+  .hero-main-heading {
+    font-size: 1.2rem;
+  }
+
+  .hero-tool-btn {
+    flex: 1 1 100%;
+  }
+
+  .stage-headline {
+    font-size: 1.05rem;
+  }
+
+  .node-main-title {
+    font-size: 0.58rem;
+  }
+
+  .btn-restart-pill span {
+    display: none;
+  }
+
+  .btn-narrate-toggle span {
+    display: none;
+  }
+
+  .tab-nav-btn {
+    padding: 6px 8px !important;
+    font-size: 0.7rem !important;
+  }
+}

