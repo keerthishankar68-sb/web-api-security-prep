@@ -216,12 +216,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Which of the following describes the foundational security boundary enforced by the browser's Same-Origin Policy (SOP)?",
       "options": [
-        "It prevents scripts executed in one origin from reading DOM trees, cookies, or fetch response data belonging to a different origin (defined by Scheme, Host, Port)",
         "It acts as a network firewall that halts incoming HTTP requests at the web server if dispatched by an unauthorized domain",
+        "It prevents scripts executed in one origin from reading DOM trees, cookies, or fetch response data belonging to a different origin (defined by Scheme, Host, Port)",
         "It encrypts cross-origin payloads using TLS so intermediate proxies cannot inspect the transmission",
         "It disables third-party image, stylesheet, and script embedding (<img src>, <script src>) across all web applications"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "SOP is enforced strictly within the browser JavaScript sandbox based on the (Protocol, Host, Port) tuple. Browsers still transmit simple cross-origin requests, but prohibit JavaScript from inspecting or reading the response payload unless the destination server explicitly opts in via CORS headers."
     }
   },
@@ -438,12 +438,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why does the HTTP specification (RFC 9110) strictly prohibit mapping state-mutating actions (like account deletion or password reset) to the GET method?",
       "options": [
-        "Because GET is defined as safe and cacheable; search crawlers, browser prefetchers, and ambient <img> tags will trigger irreversible mutations without user interaction",
-        "Because GET requests cannot include query parameters or query strings under standard HTTP parsing rules",
         "Because web application firewalls (WAFs) automatically block all GET requests that contain database queries",
+        "Because GET requests cannot include query parameters or query strings under standard HTTP parsing rules",
+        "Because GET is defined as safe and cacheable; search crawlers, browser prefetchers, and ambient <img> tags will trigger irreversible mutations without user interaction",
         "Because TLS certificates do not encrypt headers or URLs sent over GET connections"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "RFC 9110 specifies GET as a safe, read-only method. Browsers, CDNs, and email scanners treat GET as side-effect-free, prefetching links automatically. Furthermore, GET requests execute automatically via HTML tags (<img src='...'>) with ambient credentials, bypassing CSRF protections."
     }
   },
@@ -658,12 +658,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "In an API interview, how do you explain the architectural difference between HTTP 401 Unauthorized and HTTP 403 Forbidden?",
       "options": [
-        "401 means Authentication failure (unknown identity, requires WWW-Authenticate challenge), while 403 means Authorization failure (identity is verified, but permissions are insufficient)",
+        "401 is returned to mobile clients, while 403 is returned exclusively to desktop browser clients",
         "401 is used exclusively for expired TLS certificates, while 403 is used for rate limiting and IP blocking",
         "401 indicates a database server crash, whereas 403 indicates an invalid HTTP request method like TRACE",
-        "401 is returned to mobile clients, while 403 is returned exclusively to desktop browser clients"
+        "401 means Authentication failure (unknown identity, requires WWW-Authenticate challenge), while 403 means Authorization failure (identity is verified, but permissions are insufficient)"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "Per RFC 9110, 401 Unauthorized indicates unauthenticated access where credentials are missing or invalid, requiring a WWW-Authenticate header. 403 Forbidden means the server recognizes the caller's identity, but explicitly refuses permission for the requested resource."
     }
   },
@@ -1107,12 +1107,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What are the primary security and architectural improvements introduced in TLS 1.3 (RFC 8446) over TLS 1.2?",
       "options": [
-        "Handshake latency reduced to 1-RTT, server certificates encrypted in transit, static RSA key exchange removed in favor of mandatory Perfect Forward Secrecy (ECDHE), and vulnerable CBC ciphers deprecated",
         "It switches from TCP to UDP and removes certificate authority verification entirely",
+        "Handshake latency reduced to 1-RTT, server certificates encrypted in transit, static RSA key exchange removed in favor of mandatory Perfect Forward Secrecy (ECDHE), and vulnerable CBC ciphers deprecated",
         "It allows clients to transmit unencrypted HTTP passwords if they are hashed with MD5",
         "It replaces public-key cryptography with pre-shared symmetric master passwords baked into the browser"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "TLS 1.3 reduces the handshake to 1 round-trip by sending key shares in ClientHello; encrypts server certificates to enhance privacy; mandates Perfect Forward Secrecy (ECDHE); and deprecates weak algorithms like static RSA and CBC-mode ciphers."
     }
   },
@@ -1327,12 +1327,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What is the security significance of the '__Host-' cookie prefix defined in RFC 6265bis?",
       "options": [
-        "It forces the cookie to have the Secure flag, Path=/, and forbids the Domain attribute, preventing compromised subdomains from overwriting apex domain cookies (cookie tossing)",
-        "It automatically encrypts the cookie on the client machine using Windows DPAPI or macOS Keychain",
         "It restricts cookie access to internal server-side microservices via gRPC calls",
+        "It automatically encrypts the cookie on the client machine using Windows DPAPI or macOS Keychain",
+        "It forces the cookie to have the Secure flag, Path=/, and forbids the Domain attribute, preventing compromised subdomains from overwriting apex domain cookies (cookie tossing)",
         "It causes the cookie to self-destruct after 5 minutes of browser inactivity"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "The '__Host-' prefix enforces strict browser invariants: the cookie must be Secure, have Path=/, and cannot specify a Domain attribute. This guarantees the cookie can only be set and read by the exact host that issued it, preventing malicious subdomains from injecting shadow cookies."
     }
   },
@@ -1547,12 +1547,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why do security architects strongly discourage storing access and refresh tokens in browser localStorage for Single Page Applications (SPAs)?",
       "options": [
-        "Because localStorage has no script isolation: any XSS flaw or rogue third-party dependency can read and exfiltrate the raw token for offline attacker reuse",
+        "Because web browsers charge monthly licensing fees for storing authentication tokens in localStorage",
         "Because localStorage is cleared automatically every time a user refreshes the page",
         "Because localStorage cannot hold strings longer than 128 characters, truncating most JWT signatures",
-        "Because web browsers charge monthly licensing fees for storing authentication tokens in localStorage"
+        "Because localStorage has no script isolation: any XSS flaw or rogue third-party dependency can read and exfiltrate the raw token for offline attacker reuse"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "localStorage is readable by any JavaScript executing within the origin. An XSS vulnerability allows attackers to extract tokens and use them offline until expiration. Storing tokens in HttpOnly cookies or using the Backend-For-Frontend (BFF) pattern prevents client-side script access."
     }
   },
@@ -1985,12 +1985,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "How do modern high-scale architectures resolve the trade-off between the performance of stateless JWTs and the instant revocation of stateful sessions?",
       "options": [
-        "By using a Hybrid Model: short-lived stateless access JWTs (5-15 min) for fast microservice validation, paired with stateful refresh tokens stored in Redis for centralized revocation",
         "By setting the JWT expiration time to 365 days and disabling all token revocation features",
+        "By using a Hybrid Model: short-lived stateless access JWTs (5-15 min) for fast microservice validation, paired with stateful refresh tokens stored in Redis for centralized revocation",
         "By generating a new 2048-bit RSA key pair for every individual HTTP request",
         "By storing all session tokens in the browser's URL query string"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "A hybrid model captures the best of both worlds: short-lived access tokens allow microservices to verify claims in-memory without database bottlenecks, while stateful refresh tokens allow immediate revocation upon logout, password change, or security compromise."
     }
   },
@@ -2206,12 +2206,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why are WebAuthn / FIDO2 Passkeys classified as 'Phishing-Resistant' while SMS codes and TOTP apps (Google Authenticator) are vulnerable to phishing?",
       "options": [
-        "Because WebAuthn binds the signature cryptographically to the browser's actual TLS origin (rpId); hardware authenticators will never sign credentials for an attacker's reverse-proxy domain",
-        "Because WebAuthn requires users to type their mother's maiden name during biometric authentication",
         "Because WebAuthn requires 128-digit numeric passwords sent over cellular 5G networks",
+        "Because WebAuthn requires users to type their mother's maiden name during biometric authentication",
+        "Because WebAuthn binds the signature cryptographically to the browser's actual TLS origin (rpId); hardware authenticators will never sign credentials for an attacker's reverse-proxy domain",
         "Because WebAuthn disables all internet traffic while authentication is running"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Reverse-proxy phishing tools (like Evilginx) can easily intercept and relay 6-digit TOTP codes or SMS tokens. WebAuthn is immune because the browser supplies the real domain origin to the authenticator; the authenticator will refuse to sign if the origin does not match the registered Relying Party ID."
     }
   },
@@ -2427,12 +2427,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why is rate limiting based strictly on client IP address ineffective at stopping modern Credential Stuffing attacks, and what is the proper defense?",
       "options": [
-        "Attackers use rotating residential botnet proxies (1-2 attempts per IP across thousands of IPs); architectures must rate limit on BOTH IP and target account username simultaneously",
+        "Because rate limiting on IP addresses causes servers to run out of physical disk space",
         "Because IP addresses cannot be parsed from HTTP request headers under modern TCP/IP standards",
         "Because residential proxy IPs are automatically whitelisted by web application firewalls",
-        "Because rate limiting on IP addresses causes servers to run out of physical disk space"
+        "Attackers use rotating residential botnet proxies (1-2 attempts per IP across thousands of IPs); architectures must rate limit on BOTH IP and target account username simultaneously"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "Botnets distribute millions of login attempts across tens of thousands of rotating residential proxy IPs, keeping per-IP traffic below standard thresholds. Defenses must track velocity on both IP and targeted username (dual-key limiting), combined with CAPTCHA step-up and breach list monitoring."
     }
   },
@@ -2867,12 +2867,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What is the most effective and resilient defense against Broken Object-Level Authorization (BOLA / IDOR, OWASP API #1)?",
       "options": [
-        "Enforcing object-level ownership at the database query level (e.g. WHERE id = :id AND user_id = :currentUser) and using UUID v4 identifiers, returning 404 if no record matches",
         "Hiding object IDs inside the browser's cookies so they never appear in URLs",
+        "Enforcing object-level ownership at the database query level (e.g. WHERE id = :id AND user_id = :currentUser) and using UUID v4 identifiers, returning 404 if no record matches",
         "Adding client-side JavaScript validation that hides edit buttons if the user is not an admin",
         "Relying solely on JWT signature verification at the API gateway without checking database record ownership"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "BOLA occurs when applications verify that a user is logged in, but fail to verify whether they own the specific object requested. The definitive defense is repository-level scoping (WHERE id = :id AND tenant_id = :tenant) combined with UUID v4 to prevent sequential enumeration."
     }
   },
@@ -3087,12 +3087,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "How do you clearly differentiate Vertical Privilege Escalation from Horizontal Privilege Escalation in a software security interview?",
       "options": [
-        "Vertical escalation moves up the privilege hierarchy (User accessing Admin functions, defended by RBAC route guards); Horizontal escalation moves laterally across users with the same privilege level (User A accessing User B's data, defended by object ownership checks)",
-        "Vertical escalation happens on mobile apps, while Horizontal escalation happens on desktop browsers",
         "Vertical escalation exploits SQL injection, while Horizontal escalation exploits buffer overflows",
+        "Vertical escalation happens on mobile apps, while Horizontal escalation happens on desktop browsers",
+        "Vertical escalation moves up the privilege hierarchy (User accessing Admin functions, defended by RBAC route guards); Horizontal escalation moves laterally across users with the same privilege level (User A accessing User B's data, defended by object ownership checks)",
         "Vertical escalation occurs over HTTPS, while Horizontal escalation occurs over plain HTTP"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Vertical escalation is climbing up privilege tiers (User to Admin), defended by route/function-level role guards. Horizontal escalation is crossing lateral boundaries to access peer records (User A to User B), defended by database object-level ownership checks."
     }
   },
@@ -3307,12 +3307,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why do Parameterized Queries (Prepared Statements) provide definitive protection against SQL Injection where regex sanitization and character escaping often fail?",
       "options": [
-        "Because Prepared Statements pre-compile the SQL Abstract Syntax Tree (AST) first, ensuring the database engine treats all user inputs strictly as literal data parameters that cannot alter query command structure",
+        "Because Prepared Statements require users to submit their database passwords via two-factor authentication",
         "Because Prepared Statements automatically encrypt the entire database using AES-256",
         "Because Prepared Statements convert all SQL queries into flat JSON files stored in memory",
-        "Because Prepared Statements require users to submit their database passwords via two-factor authentication"
+        "Because Prepared Statements pre-compile the SQL Abstract Syntax Tree (AST) first, ensuring the database engine treats all user inputs strictly as literal data parameters that cannot alter query command structure"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "Prepared statements work by having the database engine parse and compile the SQL query structure with placeholders first. Untrusted user input is bound separately as pure data literals, making it mathematically impossible for the input to alter the syntax tree or inject executable commands."
     }
   },
@@ -3748,12 +3748,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why can Server-Side Web Application Firewalls (WAFs) fail to detect or block DOM-Based XSS attacks?",
       "options": [
-        "Because DOM XSS payloads can reside in the URL fragment identifier (after the '#' symbol), which browsers never transmit over the network to the server in HTTP requests",
         "Because DOM XSS attacks only execute on Linux operating systems",
+        "Because DOM XSS payloads can reside in the URL fragment identifier (after the '#' symbol), which browsers never transmit over the network to the server in HTTP requests",
         "Because DOM XSS payloads are automatically encrypted by the operating system kernel",
         "Because WAFs are legally prohibited from inspecting JavaScript payloads under RFC 9110"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "HTTP specifications mandate that URL fragments (everything after the '#' character) remain strictly client-side; browsers never transmit them to the server. If client-side JavaScript reads from location.hash and writes to an unsafe sink like innerHTML, the attack executes without the server or WAF ever seeing the payload."
     }
   },
@@ -3972,12 +3972,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why does requiring a custom HTTP request header (such as 'X-CSRF-Token' or 'X-Requested-With') effectively protect REST APIs against Cross-Site Request Forgery (CSRF)?",
       "options": [
-        "Because standard HTML forms and simple cross-origin requests cannot attach custom headers; attempting to send them requires a CORS preflight (OPTIONS) check that the server can reject",
-        "Because custom headers automatically encrypt the HTTP body with RSA-4096",
         "Because custom headers instruct web browsers to delete all cookies before sending the request",
+        "Because custom headers automatically encrypt the HTTP body with RSA-4096",
+        "Because standard HTML forms and simple cross-origin requests cannot attach custom headers; attempting to send them requires a CORS preflight (OPTIONS) check that the server can reject",
         "Because custom headers can only be sent from verified Apple or Google hardware devices"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Under the CORS specification, standard HTML tags (forms, links, images) can only send simple headers (like Content-Type: application/x-www-form-urlencoded). Sending a custom header like 'X-CSRF-Token' turns the request into a preflighted request, requiring an OPTIONS check that an attacker on another domain cannot bypass without server CORS permission."
     }
   },
@@ -4192,12 +4192,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "How does the OAuth 2.0 Authorization Code Flow with PKCE (RFC 7636) prevent authorization code injection and interception attacks in public clients?",
       "options": [
-        "The client generates an unhashed code_verifier kept in memory and sends its SHA-256 hash (code_challenge) during authorization; only the client possessing the original code_verifier can redeem the code at the /token endpoint",
+        "It eliminates authorization codes entirely and sends the user's plaintext password in the URL query string",
         "It encrypts the entire mobile device using BitLocker or FileVault before the user can click login",
         "It replaces HTTP redirects with manual email confirmation codes sent to the user's secondary recovery address",
-        "It eliminates authorization codes entirely and sends the user's plaintext password in the URL query string"
+        "The client generates an unhashed code_verifier kept in memory and sends its SHA-256 hash (code_challenge) during authorization; only the client possessing the original code_verifier can redeem the code at the /token endpoint"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "In PKCE, the client generates a high-entropy code_verifier and passes its SHA-256 hash (code_challenge) during the authorization request. Even if an attacker intercepts the authorization code, they cannot redeem it at the /token endpoint without knowing the unhashed code_verifier held in the authentic client's memory."
     }
   },
@@ -4626,12 +4626,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why is CSP frame-ancestors preferred over the legacy X-Frame-Options header?",
       "options": [
-        "frame-ancestors supports granular domain allowlists and validates the entire ancestor hierarchy",
         "X-Frame-Options can only be configured via client-side JavaScript",
+        "frame-ancestors supports granular domain allowlists and validates the entire ancestor hierarchy",
         "frame-ancestors encrypts the DOM elements within the iframe",
         "X-Frame-Options has been completely disabled across all operating systems"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "CSP frame-ancestors supports multiple origins and checks all parent framing windows, whereas XFO only supports DENY or SAMEORIGIN with no reliable multi-domain allowlisting."
     }
   },
@@ -4838,12 +4838,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What occurs when a browser downloads an external script whose bytes do not match the declared integrity attribute?",
       "options": [
-        "The browser immediately discards the resource and halts execution with an error",
-        "The browser sanitizes the script and executes only safe DOM operations",
         "The script is executed in an isolated Web Worker thread",
+        "The browser sanitizes the script and executes only safe DOM operations",
+        "The browser immediately discards the resource and halts execution with an error",
         "The browser prompts the user with a confirmation popup"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Under the SRI specification, any digest mismatch causes the browser to discard the downloaded resource immediately without executing a single instruction."
     }
   },
@@ -5049,12 +5049,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What vulnerability does HSTS Preload solve that regular HSTS headers cannot address on their own?",
       "options": [
-        "The first-visit bootstrap vulnerability where an attacker can strip SSL before the browser ever receives the HSTS header",
+        "Compromised server private keys and certificate revocation",
         "Database injection attacks on the backend server",
         "Cross-site request forgery attacks via third-party cookies",
-        "Compromised server private keys and certificate revocation"
+        "The first-visit bootstrap vulnerability where an attacker can strip SSL before the browser ever receives the HSTS header"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "Regular HSTS relies on Trust-On-First-Use (TOFU). HSTS Preload bakes the domain into browser source code so even the very first request on a brand new device connects strictly via HTTPS."
     }
   },
@@ -5463,12 +5463,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What does the browser send in the Referer header to cross-origin HTTPS requests when Referrer-Policy: strict-origin-when-cross-origin is configured?",
       "options": [
-        "Only the origin (e.g., https://app.com/) with path and query parameters completely stripped",
         "The full URL including all query parameters and hash fragments",
+        "Only the origin (e.g., https://app.com/) with path and query parameters completely stripped",
         "An empty string with no headers whatsoever",
         "A cryptographic hash of the user session ID"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "strict-origin-when-cross-origin strips the entire path and query string when making cross-origin requests, sending only the origin (scheme, host, port)."
     }
   },
@@ -5675,12 +5675,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why does Cross-Site WebSocket Hijacking (CSWSH) allow full data exfiltration, unlike traditional CSRF?",
       "options": [
-        "Because once the WebSocket handshake completes, the connection is a persistent bi-directional TCP stream that the attacker script can both read from and write to",
-        "Because WebSockets bypass TLS encryption",
         "Because WebSockets run in kernel space on the client machine",
+        "Because WebSockets bypass TLS encryption",
+        "Because once the WebSocket handshake completes, the connection is a persistent bi-directional TCP stream that the attacker script can both read from and write to",
         "Because WebSockets disable JavaScript memory garbage collection"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Traditional CSRF is a blind one-way attack due to SOP read-blocking, but once an unauthorized WebSocket handshake completes, the attacker gains full bi-directional read and write capabilities."
     }
   },
@@ -5885,12 +5885,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why is validating a redirect destination with url.startsWith('/') insufficient to prevent Open Redirect attacks?",
       "options": [
-        "Because attackers can supply protocol-relative URLs like //evil.com which begin with a slash but redirect to an external host",
+        "Because HTTP headers cannot parse strings containing slashes",
         "Because browsers convert slashes to backslashes automatically",
         "Because startsWith is disabled in modern ECMAScript engines",
-        "Because HTTP headers cannot parse strings containing slashes"
+        "Because attackers can supply protocol-relative URLs like //evil.com which begin with a slash but redirect to an external host"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "In web browsers, a URL starting with double slashes //evil.com is protocol-relative, inheriting the current scheme (e.g. https://evil.com) and navigating to an external domain."
     }
   },
@@ -6306,12 +6306,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What is the key difference between BOLA (Broken Object Level Authorization) and BFLA (Broken Function Level Authorization)?",
       "options": [
-        "BOLA is horizontal unauthorized access to data records, while BFLA is vertical unauthorized execution of privileged functions and administrative actions",
         "BOLA applies only to GraphQL, while BFLA applies only to REST",
+        "BOLA is horizontal unauthorized access to data records, while BFLA is vertical unauthorized execution of privileged functions and administrative actions",
         "BOLA occurs on the client, while BFLA occurs in the database",
         "BOLA involves SQL injection, while BFLA involves cross-site scripting"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "BOLA is horizontal (accessing another user's resources at the same privilege level), whereas BFLA is vertical (executing administrative or privileged actions beyond the user's role)."
     }
   },
@@ -6514,12 +6514,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What is the primary architectural solution to prevent Broken Object Property Level Authorization (BOPLA)?",
       "options": [
-        "Enforcing strict Request and Response Data Transfer Objects (DTOs) that explicitly allowlist which properties can be read or written",
-        "Encrypting the database connection string with TLS 1.3",
         "Switching from JSON to XML payloads",
+        "Encrypting the database connection string with TLS 1.3",
+        "Enforcing strict Request and Response Data Transfer Objects (DTOs) that explicitly allowlist which properties can be read or written",
         "Setting Access-Control-Allow-Origin to wildcard *"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Decoupling internal models using explicit DTO allowlists guarantees that sensitive fields are never leaked in response payloads and unauthorized properties cannot be mass-assigned during mutations."
     }
   },
@@ -6729,12 +6729,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What is the most effective defense against pagination-based resource exhaustion attacks in REST APIs?",
       "options": [
-        "Enforcing a strict server-side ceiling that clamps pagination query parameters (e.g. max limit 100) regardless of client input",
+        "Converting database tables to unindexed text files",
         "Increasing server RAM to 128GB on all worker nodes",
         "Relying on client-side React dropdown menus to restrict page size choices",
-        "Converting database tables to unindexed text files"
+        "Enforcing a strict server-side ceiling that clamps pagination query parameters (e.g. max limit 100) regardless of client input"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "Clamping user-supplied limit parameters to a secure maximum ceiling on the server guarantees that database memory and payload sizes remain bounded."
     }
   },
@@ -7153,12 +7153,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "How does an attacker successfully forge a JWT in an RS256 to HS256 Algorithm Confusion attack?",
       "options": [
-        "By changing the header alg to HS256 and signing the forged payload using the server's publicly accessible RSA public key as the HMAC secret",
         "By brute-forcing the 2048-bit RSA private key using quantum computers",
+        "By changing the header alg to HS256 and signing the forged payload using the server's publicly accessible RSA public key as the HMAC secret",
         "By stealing the database connection password through SQL injection",
         "By compressing the JWT header with gzip"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "Because RSA public keys are public, an attacker can use that public key string as an HMAC shared secret. If the verifier accepts HS256, it checks the signature against the public key using HMAC, which succeeds."
     }
   },
@@ -7369,12 +7369,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What security vulnerability occurs if a microservice validates a JWT's signature but fails to check the \"aud\" (audience) claim?",
       "options": [
-        "A token issued for a completely different, low-security microservice can be replayed to access this service (Confused Deputy attack)",
-        "The server's private key is leaked in the response headers",
         "The JWT payload becomes unreadable and corrupted",
+        "The server's private key is leaked in the response headers",
+        "A token issued for a completely different, low-security microservice can be replayed to access this service (Confused Deputy attack)",
         "The browser refuses to send HTTPS requests"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Without checking the aud claim, a token legitimately granted to access a minor service (like a discussion board) can be submitted to a sensitive service (like billing), breaching service isolation."
     }
   },
@@ -7586,12 +7586,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why is the Fixed Window Counter rate limiting algorithm susceptible to boundary traffic spikes?",
       "options": [
-        "Because an attacker can send maximum allowed requests at the end of one window and immediately send maximum requests at the beginning of the next, doubling throughput in a short interval",
+        "Because it consumes all CPU cores for SHA-256 hashing",
         "Because Fixed Window only works with UDP packets",
         "Because it requires client clock synchronization with atomic clocks",
-        "Because it consumes all CPU cores for SHA-256 hashing"
+        "Because an attacker can send maximum allowed requests at the end of one window and immediately send maximum requests at the beginning of the next, doubling throughput in a short interval"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "In Fixed Window, time boundaries reset abruptly. If an attacker places requests right around the reset second, the server processes up to 2x the allowed limit within a few seconds."
     }
   },
@@ -8007,12 +8007,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why is Server-Side Template Injection (SSTI) significantly more dangerous than Cross-Site Scripting (XSS)?",
       "options": [
-        "Because SSTI executes directly on the backend server with access to the underlying operating system and shell, whereas XSS executes only in the client browser",
         "Because SSTI bypasses HTTPS certificate encryption",
+        "Because SSTI executes directly on the backend server with access to the underlying operating system and shell, whereas XSS executes only in the client browser",
         "Because SSTI only affects mobile applications",
         "Because SSTI cannot be logged by firewalls"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "XSS executes within the user's client browser sandbox, but SSTI executes code directly inside the server's runtime process, typically leading to Remote Code Execution (RCE) on the backend host."
     }
   },
@@ -8220,12 +8220,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why does performing an \"instanceof\" check after calling Java's readObject() fail to prevent Insecure Deserialization attacks?",
       "options": [
-        "Because the malicious gadget chain executes automatically during the readObject() process itself, before the return value is ever checked",
-        "Because instanceof is not supported in modern Java virtual machines",
         "Because the attacker encrypts the object using private keys",
+        "Because instanceof is not supported in modern Java virtual machines",
+        "Because the malicious gadget chain executes automatically during the readObject() process itself, before the return value is ever checked",
         "Because instanceof only works on primitive types"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Deserialization executes magic methods and triggers gadget chains during the reconstruction of the object stream; by the time readObject() finishes and returns to your code, the malicious payload has already executed."
     }
   },
@@ -8437,12 +8437,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why does adding a unique salt to SHA-256 fail to make it secure for storing user passwords?",
       "options": [
-        "Because salting only prevents precomputed rainbow tables; it does not slow down the nanosecond speed of SHA-256 on massively parallel GPUs",
+        "Because salts reveal the user's plaintext password to the browser",
         "Because salts can only be 4 characters long",
         "Because SHA-256 cannot be computed on modern operating systems",
-        "Because salts reveal the user's plaintext password to the browser"
+        "Because salting only prevents precomputed rainbow tables; it does not slow down the nanosecond speed of SHA-256 on massively parallel GPUs"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "Salts defeat rainbow tables by making every hash unique, but because SHA-256 is computationally fast, GPUs can still test billions of guesses per second directly against the salted hash."
     }
   },
@@ -8858,12 +8858,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What is the purpose of validating the Subject Alternative Name (SAN) in an mTLS connection within a microservices architecture?",
       "options": [
-        "To verify the specific cryptographic workload identity (e.g. SPIFFE ID) and authorize whether that specific service is permitted to call the endpoint",
         "To compress HTTP/2 frames for lower latency",
+        "To verify the specific cryptographic workload identity (e.g. SPIFFE ID) and authorize whether that specific service is permitted to call the endpoint",
         "To negotiate the TLS symmetric cipher suite",
         "To store database credentials in the certificate"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "While mTLS validates that the certificate was signed by a trusted CA (AuthN), SAN validation confirms the exact identity of the calling service and determines if it has permissions to perform the action (AuthZ)."
     }
   },
@@ -9069,12 +9069,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why must webhook HMAC-SHA256 signatures be verified against the raw unparsed request body rather than JSON.stringify(req.body)?",
       "options": [
-        "Because JSON parsing and re-stringification can alter key order, whitespace, and formatting, altering the computed hash and causing signature verification to fail",
-        "Because HMAC-SHA256 only works on XML documents",
         "Because JSON.stringify automatically encrypts strings with AES",
+        "Because HMAC-SHA256 only works on XML documents",
+        "Because JSON parsing and re-stringification can alter key order, whitespace, and formatting, altering the computed hash and causing signature verification to fail",
         "Because raw bodies cannot be intercepted by proxies"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Cryptographic hashing is byte-sensitive. Any discrepancy in whitespace, indentation, or JSON key order introduced by deserialization alters the SHA-256 hash, causing legitimate signatures to fail."
     }
   },
@@ -9282,12 +9282,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why does standard string comparison (===) create a security vulnerability when verifying cryptographic signatures?",
       "options": [
-        "Because it exits on the first non-matching byte, creating measurable nanosecond execution time differences that allow attackers to deduce the secret byte-by-byte",
+        "Because it allows SQL queries to run inside the comparison loop",
         "Because === converts all strings to uppercase automatically",
         "Because it stores the secret in plaintext in browser cookies",
-        "Because it allows SQL queries to run inside the comparison loop"
+        "Because it exits on the first non-matching byte, creating measurable nanosecond execution time differences that allow attackers to deduce the secret byte-by-byte"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "Standard string comparisons terminate as soon as a mismatched character is found (early exit), leaking information about how many characters matched through execution duration."
     }
   },
@@ -9715,12 +9715,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What primary problem does the API Gateway \"Phantom Token\" Pattern solve?",
       "options": [
-        "It allows instant token revocation and prevents claim leakage externally while maintaining high-performance stateless JWT verification internally across microservices",
         "It converts HTTP requests into GraphQL queries automatically",
+        "It allows instant token revocation and prevents claim leakage externally while maintaining high-performance stateless JWT verification internally across microservices",
         "It compresses video streams for mobile clients",
         "It generates RSA private keys on the client browser"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "The Phantom Token pattern combines the revocation security of opaque tokens at the perimeter with the high-performance stateless scalability of JWTs inside the microservice mesh."
     }
   },
@@ -9934,12 +9934,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "Why is Query Depth Limiting alone insufficient to protect a GraphQL API from DoS attacks?",
       "options": [
-        "Because a shallow query can still cause massive resource exhaustion by requesting broad lists with large limits (e.g. 1000 items with 1000 sub-items), requiring Complexity Cost Analysis",
-        "Because depth limiting only works with MySQL databases",
         "Because depth limiting disables all user authentication",
+        "Because depth limiting only works with MySQL databases",
+        "Because a shallow query can still cause massive resource exhaustion by requesting broad lists with large limits (e.g. 1000 items with 1000 sub-items), requiring Complexity Cost Analysis",
         "Because GraphQL does not support AST traversal"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "A query can be only 2 levels deep (shallow) but request 1,000 authors with 1,000 books each (1,000,000 records). Complexity cost analysis evaluates multiplication factors to stop broad resource exhaustion."
     }
   },
@@ -10150,12 +10150,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What is the most effective way to prevent memory exhaustion from oversized Protobuf payloads in gRPC services?",
       "options": [
-        "Configuring a strict maxInboundMessageSize ceiling (e.g. 4MB) on the gRPC server builder",
+        "Running gRPC exclusively over UDP",
         "Converting all Protobuf messages to XML before parsing",
         "Disabling HTTP/2 multiplexing",
-        "Running gRPC exclusively over UDP"
+        "Configuring a strict maxInboundMessageSize ceiling (e.g. 4MB) on the gRPC server builder"
       ],
-      "correctIndex": 0,
+      "correctIndex": 3,
       "explanation": "maxInboundMessageSize instructs the gRPC framing layer to inspect the 4-byte frame header and abort immediately with Status.RESOURCE_EXHAUSTED if the payload exceeds the limit, before allocating heap memory."
     }
   },
@@ -10577,12 +10577,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What should an idempotent API do if a second request arrives with the same Idempotency-Key while the first request is still actively processing?",
       "options": [
-        "Return HTTP 409 Conflict (or wait briefly) to prevent concurrent execution of the same transaction",
         "Immediately execute the second transaction in parallel",
+        "Return HTTP 409 Conflict (or wait briefly) to prevent concurrent execution of the same transaction",
         "Permanently delete the user's account",
         "Clear all Redis caches"
       ],
-      "correctIndex": 0,
+      "correctIndex": 1,
       "explanation": "If a request with the same idempotency key is already in progress, executing a second request concurrently would cause race conditions. The server returns HTTP 409 Conflict or holds the connection until the lock clears."
     }
   },
@@ -10790,12 +10790,12 @@ export const questionsData: QuestionData[] = [
     "quiz": {
       "question": "What is the requirement for a modern web application to safely access SharedArrayBuffer without exposing users to Spectre attacks?",
       "options": [
-        "The application must achieve crossOriginIsolated status by serving both Cross-Origin-Opener-Policy: same-origin and Cross-Origin-Embedder-Policy: require-corp (or credentialless)",
-        "The application must run inside an iframe with sandbox attributes",
         "The server must be running on Linux kernel 6.0 or higher",
+        "The application must run inside an iframe with sandbox attributes",
+        "The application must achieve crossOriginIsolated status by serving both Cross-Origin-Opener-Policy: same-origin and Cross-Origin-Embedder-Policy: require-corp (or credentialless)",
         "The application must be written in Rust compiled to WebAssembly"
       ],
-      "correctIndex": 0,
+      "correctIndex": 2,
       "explanation": "Browsers require both COOP and COEP to guarantee that the document runs in a dedicated operating system process with zero unverified external memory, neutralizing Spectre and unlocking SharedArrayBuffer."
     }
   }
