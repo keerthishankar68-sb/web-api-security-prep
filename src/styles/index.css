@@ -2464,6 +2464,11 @@ body.dark-mode {
 @media (max-width: 860px) {
   .sidebar-mobile-close-btn {
     display: inline-flex;
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 1.1rem;
+    align-items: center;
+    justify-content: center;
   }
 
   /* Off-canvas mobile drawer */

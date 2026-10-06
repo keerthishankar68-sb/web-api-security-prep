@@ -2622,7 +2622,7 @@ export const questionsData: QuestionData[] = [
       ]
     },
     "nailIt": {
-      "whatIsHappening": "Confusing AuthN with AuthZ leads to severe authorization bugs like BOLA/IDOR, where an application verifies that a caller is logged in, but fails to check if they own the requested object.",
+      "whatIsHappening": "WHAT IT IS:\nAuthentication (AuthN) is the cryptographic and identity verification process of confirming WHO a client or user is (credentials, passwords, Passkeys, MFA tokens, certificates).\nAuthorization (AuthZ) is the permission verification process of determining WHAT an authenticated identity is permitted to execute or access (roles, scopes, object ownership, policies).\n\nWHY IT MATTERS:\nConfusing AuthN and AuthZ leads to catastrophic vulnerabilities like BOLA/IDOR (OWASP API1) and BFLA (OWASP API5), where a system verifies that a caller is logged in, but completely omits verifying whether they own the requested record or have admin rights.\n\nREAL-WORLD EXAMPLE:\nA multi-tenant SaaS application verifies a valid JWT session for User A (AuthN succeeds), but allows User A to change the 'tenant_id' parameter in a PUT /api/tenant/billing request to access Tenant B's invoice (AuthZ fails).\n\nHOW TO PREVENT IT:\nEnforce authentication at the network/API gateway edge. Enforce authorization centrally in domain business logic via Policy Decision Points (PDP/PEP) and repository-level ownership queries (WHERE id = :id AND tenant_id = :tenant). Return HTTP 401 when authentication is missing/invalid, and HTTP 403 when authenticated identity lacks permission.",
       "interviewTakeaway": "Always perform authorization checks at the service and data layer. Passing an authentication check (valid JWT) must never automatically imply permission to access arbitrary resource IDs.",
       "commonTraps": [
         "Relying solely on frontend UI hiding of buttons for authorization.",
@@ -2660,7 +2660,7 @@ export const questionsData: QuestionData[] = [
     "id": 13,
     "slug": "broken-object-level-authorization-bola-idor",
     "title": "What is Broken Object-Level Authorization (BOLA / IDOR) in APIs and how is it prevented?",
-    "subtitle": "Preventing OWASP API #1 vulnerabilities through tenant-scoped database queries and fine-grained ACLs.",
+    "subtitle": "Preventing unauthorized peer data access (OWASP API1:2023) through repository-level scoping and UUIDs.",
     "category": "Authorization & Access Control",
     "nodes": [
       {
@@ -2865,7 +2865,7 @@ export const questionsData: QuestionData[] = [
     "tier": "Intermediate",
     "interviewTakeaway": "Always enforce tenancy in the data access layer: SELECT * FROM documents WHERE id = :id AND account_id = :session_account_id. Returning 404 instead of 403 prevents attackers from learning whether an object exists.",
     "quiz": {
-      "question": "What is the most effective and resilient defense against Broken Object-Level Authorization (BOLA / IDOR, OWASP API #1)?",
+      "question": "What is the most effective and resilient architectural defense against Broken Object-Level Authorization (BOLA / IDOR, OWASP API1:2023)?",
       "options": [
         "Hiding object IDs inside the browser's cookies so they never appear in URLs",
         "Enforcing object-level ownership at the database query level (e.g. WHERE id = :id AND user_id = :currentUser) and using UUID v4 identifiers, returning 404 if no record matches",
@@ -2873,7 +2873,7 @@ export const questionsData: QuestionData[] = [
         "Relying solely on JWT signature verification at the API gateway without checking database record ownership"
       ],
       "correctIndex": 1,
-      "explanation": "BOLA occurs when applications verify that a user is logged in, but fail to verify whether they own the specific object requested. The definitive defense is repository-level scoping (WHERE id = :id AND tenant_id = :tenant) combined with UUID v4 to prevent sequential enumeration."
+      "explanation": "BOLA (OWASP API1:2023, historically known as IDOR) occurs when an application validates that a user is authenticated, but fails to check if they have permission to access the specific object identifier. The definitive defense is repository-level scoping (WHERE id = :id AND tenant_id = :tenant) combined with UUID v4 to eliminate sequential object enumeration."
     }
   },
   {
@@ -4205,7 +4205,7 @@ export const questionsData: QuestionData[] = [
     "id": 20,
     "slug": "mass-assignment-over-posting-in-apis",
     "title": "What is Mass Assignment (Over-Posting / Object Injection) in REST APIs and how is it prevented?",
-    "subtitle": "Preventing unauthorized privilege elevation and object property overwrites via strict DTO allowlisting.",
+    "subtitle": "Understanding automatic request-to-model binding risks (OWASP API6:2019, consolidated into API3:2023 BOPLA) and strict DTO allowlists.",
     "category": "OAuth 2.0 & API Architecture",
     "nodes": [
       {
@@ -4411,7 +4411,7 @@ export const questionsData: QuestionData[] = [
     "tier": "Advanced",
     "interviewTakeaway": "Always decouple API contracts from database models using explicit DTOs. Configure schema validators to drop or reject unknown properties with { whitelist: true, forbidNonWhitelisted: true }.",
     "quiz": {
-      "question": "What is the most effective architectural defense against Mass Assignment (Over-Posting / OWASP API #3) in modern web applications?",
+      "question": "What is the most effective architectural defense against Mass Assignment (Over-Posting / historically OWASP API6:2019, now part of API3:2023 BOPLA)?",
       "options": [
         "Enforcing explicit Request Data Transfer Objects (DTOs) with strict attribute allowlists (e.g. Zod or strong parameters), ensuring unapproved fields like 'is_admin' are rejected or stripped before reaching database entities",
         "Changing database column names every 24 hours to confuse attackers",
@@ -4419,7 +4419,7 @@ export const questionsData: QuestionData[] = [
         "Disabling all PUT and PATCH HTTP methods across the entire application"
       ],
       "correctIndex": 0,
-      "explanation": "Mass assignment happens when frameworks automatically bind all incoming request keys to ORM model fields. The definitive defense is using explicit Request DTOs with strict allowlists (e.g. Zod schemas or strong parameters) that only accept approved fields (e.g. displayName), discarding or rejecting unauthorized properties like 'is_admin' or 'role'."
+      "explanation": "Mass Assignment occurs when frameworks automatically bind all incoming request properties directly to database entities or ORM models. In the OWASP API Security Top 10 2023, Mass Assignment and Excessive Data Exposure were consolidated into API3:2023 (Broken Object Property Level Authorization / BOPLA). The definitive defense is enforcing explicit Request Data Transfer Objects (DTOs) with strict allowlists (e.g. Zod or class-validator) at the controller boundary, rejecting or ignoring unapproved attributes like 'is_admin' or 'role'."
     }
   },
   {
@@ -6109,8 +6109,8 @@ export const questionsData: QuestionData[] = [
   {
     "id": 29,
     "slug": "broken-function-level-authorization-bfla",
-    "title": "What is Broken Function Level Authorization (BFLA / OWASP API #2) and how is it prevented?",
-    "subtitle": "Securing administrative and privileged endpoints against unauthorized regular user execution.",
+    "title": "What is Broken Function Level Authorization (BFLA / OWASP API #5) and how is it prevented?",
+    "subtitle": "Enforcing hierarchical and role-based access control (OWASP API5:2023) against vertical privilege escalation.",
     "category": "API Authorization & RBAC",
     "tier": "Core",
     "nodes": [
@@ -6284,7 +6284,7 @@ export const questionsData: QuestionData[] = [
     },
     "nailIt": {
       "whatIsHappening": "The app hides the admin UI from normal users, but the backend /admin API endpoint doesn't check if the caller actually has an ADMIN role. Regular users invoke the endpoint directly to execute privileged functions.",
-      "interviewTakeaway": "Never trust UI obscurity for access control. Enforce strict, centralized server-side authorization checks (RBAC/ABAC) on every single API route and HTTP verb.",
+      "interviewTakeaway": "BOLA is horizontal record tampering (API1:2023); BFLA is vertical administrative function abuse (API5:2023). Defend BFLA using declarative role-based route guards and policy-as-code at the gateway and controller boundaries.",
       "commonTraps": [
         "Checking authorization for GET requests but forgetting to apply checks to POST, PUT, or DELETE verbs on the same endpoint.",
         "Hardcoding administrative role checks in scattered controller methods instead of using centralized middleware or decorators."
@@ -6304,7 +6304,7 @@ export const questionsData: QuestionData[] = [
     ],
     "interviewTakeaway": "Never trust UI obscurity for access control. Enforce strict, centralized server-side authorization checks (RBAC/ABAC) on every single API route and HTTP verb.",
     "quiz": {
-      "question": "What is the key difference between BOLA (Broken Object Level Authorization) and BFLA (Broken Function Level Authorization)?",
+      "question": "What is the key architectural difference between BOLA (OWASP API1:2023) and BFLA (Broken Function Level Authorization / OWASP API5:2023)?",
       "options": [
         "BOLA applies only to GraphQL, while BFLA applies only to REST",
         "BOLA is horizontal unauthorized access to data records, while BFLA is vertical unauthorized execution of privileged functions and administrative actions",
@@ -6312,14 +6312,14 @@ export const questionsData: QuestionData[] = [
         "BOLA involves SQL injection, while BFLA involves cross-site scripting"
       ],
       "correctIndex": 1,
-      "explanation": "BOLA is horizontal (accessing another user's resources at the same privilege level), whereas BFLA is vertical (executing administrative or privileged actions beyond the user's role)."
+      "explanation": "BOLA (OWASP API1:2023) is horizontal unauthorized access across peer data records (User A accessing User B's record), whereas BFLA (OWASP API5:2023) is vertical unauthorized execution of privileged administrative functions (e.g., normal user invoking DELETE /api/admin/users/123). In both OWASP API Top 10 2019 and 2023, BFLA is categorized under API #5 (not API #2)."
     }
   },
   {
     "id": 30,
     "slug": "broken-object-property-level-authorization-bopla",
     "title": "What is Broken Object Property Level Authorization (BOPLA / OWASP API #3) and how do you prevent data leaks?",
-    "subtitle": "Combining Mass Assignment and Excessive Data Exposure into unified property-level API security.",
+    "subtitle": "Defending against property-level tampering and data leakage (OWASP API3:2023) using strict Request and Response DTOs.",
     "category": "API Data Modeling & Schemas",
     "tier": "Core",
     "nodes": [
@@ -6512,7 +6512,7 @@ export const questionsData: QuestionData[] = [
     ],
     "interviewTakeaway": "Always decouple database entities from API contracts. Use strict Request DTOs with property allowlists for writes, and Response DTOs that explicitly sanitize sensitive fields for reads.",
     "quiz": {
-      "question": "What is the primary architectural solution to prevent Broken Object Property Level Authorization (BOPLA)?",
+      "question": "What is the primary architectural solution to prevent Broken Object Property Level Authorization (BOPLA / OWASP API3:2023)?",
       "options": [
         "Switching from JSON to XML payloads",
         "Encrypting the database connection string with TLS 1.3",
@@ -6520,14 +6520,14 @@ export const questionsData: QuestionData[] = [
         "Setting Access-Control-Allow-Origin to wildcard *"
       ],
       "correctIndex": 2,
-      "explanation": "Decoupling internal models using explicit DTO allowlists guarantees that sensitive fields are never leaked in response payloads and unauthorized properties cannot be mass-assigned during mutations."
+      "explanation": "OWASP API3:2023 (Broken Object Property Level Authorization / BOPLA) combines Mass Assignment (unauthorized writing of properties) and Excessive Data Exposure (unauthorized reading of properties). Decoupling database models from APIs using strict Request DTO allowlists (preventing unauthorized writes) and Response DTO serializers (preventing data leaks) definitively prevents BOPLA."
     }
   },
   {
     "id": 31,
     "slug": "unrestricted-resource-consumption-dos-owasp-api-4",
     "title": "What is Unrestricted Resource Consumption (OWASP API #4) and how do you protect compute and memory?",
-    "subtitle": "Defending against pagination bombs, uncontrolled file uploads, memory exhaustion, and regex DoS (ReDoS).",
+    "subtitle": "Defending backend resources against unbound pagination, payload bloat, and execution timeouts (OWASP API4:2023).",
     "category": "API Resilience & Resource Security",
     "tier": "Intermediate",
     "nodes": [
@@ -6727,7 +6727,7 @@ export const questionsData: QuestionData[] = [
     ],
     "interviewTakeaway": "Always clamp user-controlled pagination parameters to an immutable maximum (max 100). Enforce request body limits, database query timeouts, and cursor-based pagination.",
     "quiz": {
-      "question": "What is the most effective defense against pagination-based resource exhaustion attacks in REST APIs?",
+      "question": "What is the most effective defense against pagination-based resource exhaustion attacks in REST APIs (OWASP API4:2023)?",
       "options": [
         "Converting database tables to unindexed text files",
         "Increasing server RAM to 128GB on all worker nodes",
@@ -6735,7 +6735,7 @@ export const questionsData: QuestionData[] = [
         "Enforcing a strict server-side ceiling that clamps pagination query parameters (e.g. max limit 100) regardless of client input"
       ],
       "correctIndex": 3,
-      "explanation": "Clamping user-supplied limit parameters to a secure maximum ceiling on the server guarantees that database memory and payload sizes remain bounded."
+      "explanation": "OWASP API4:2023 (Unrestricted Resource Consumption) occurs when APIs lack hard ceilings on client-controlled resource requests. Clamping user-supplied pagination limit parameters on the server side (e.g. Math.min(requestedLimit, 100)) guarantees database memory and response sizes remain strictly bounded, preventing denial of service."
     }
   },
   {
