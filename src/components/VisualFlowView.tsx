@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { DiagramNode, DiagramStep } from '../types/question';
 import { soundEffects } from '../utils/audioFx';
 import {
@@ -7,7 +7,6 @@ import {
   ChevronLeft,
   ChevronRight,
   RotateCcw,
-  Zap,
   ShieldCheck,
   ShieldAlert,
   Server,
@@ -18,12 +17,10 @@ import {
   Globe,
   Key,
   Copy,
-  Check,
   Lightbulb,
   BookOpen,
   Volume2,
   VolumeX,
-  Target,
   Terminal,
   Code2,
   ArrowRight,
@@ -46,6 +43,49 @@ interface VisualFlowViewProps {
   onStepChange: (index: number) => void;
 }
 
+// Helper to intelligently resolve node references to actual participant nodes
+const resolveNodeInfo = (
+  nodeRef: string,
+  nodes: DiagramNode[],
+  defaultIndex: number
+): { node: DiagramNode; index: number } => {
+  if (!nodes || nodes.length === 0) {
+    const dummy: DiagramNode = { id: 'unknown', label: 'Entity', iconType: 'browser' };
+    return { node: dummy, index: 0 };
+  }
+
+  // 1. Direct ID match
+  const idx = nodes.findIndex(n => n.id === nodeRef);
+  if (idx !== -1) return { node: nodes[idx], index: idx };
+
+  // 2. Substring match on ID
+  const lowerRef = (nodeRef || '').toLowerCase();
+  const subIdx = nodes.findIndex(n => n.id.toLowerCase().includes(lowerRef) || lowerRef.includes(n.id.toLowerCase()));
+  if (subIdx !== -1) return { node: nodes[subIdx], index: subIdx };
+
+  // 3. Match on label or sub
+  const labelIdx = nodes.findIndex(n =>
+    n.label.toLowerCase().includes(lowerRef) ||
+    (n.sub && n.sub.toLowerCase().includes(lowerRef)) ||
+    lowerRef.includes(n.label.toLowerCase())
+  );
+  if (labelIdx !== -1) return { node: nodes[labelIdx], index: labelIdx };
+
+  // 4. Role keywords
+  if (lowerRef === 'server' || lowerRef.includes('srv') || lowerRef.includes('backend') || lowerRef.includes('api')) {
+    const srvIdx = nodes.findIndex(n => n.iconType === 'server' || n.iconType === 'api' || n.label.toLowerCase().includes('server'));
+    if (srvIdx !== -1) return { node: nodes[srvIdx], index: srvIdx };
+  }
+  if (lowerRef === 'browser' || lowerRef.includes('client') || lowerRef.includes('user')) {
+    const cliIdx = nodes.findIndex(n => n.iconType === 'browser' || n.label.toLowerCase().includes('browser') || n.label.toLowerCase().includes('client'));
+    if (cliIdx !== -1) return { node: nodes[cliIdx], index: cliIdx };
+  }
+
+  // 5. Fallback clamped index
+  const safeIdx = Math.max(0, Math.min(nodes.length - 1, defaultIndex));
+  return { node: nodes[safeIdx] || nodes[0], index: safeIdx };
+};
+
 export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
   nodes,
   steps,
@@ -55,9 +95,7 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
 }) => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
-  const [copied, setCopied] = useState(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [showHeaders, setShowHeaders] = useState(true);
+  const [showHeaders, setShowHeaders] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [autoNarrate, setAutoNarrate] = useState(false);
   const [isTheaterMode, setIsTheaterMode] = useState(false);
@@ -65,14 +103,19 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [wiretapTab, setWiretapTab] = useState<'wire' | 'hex' | 'sop'>('wire');
   const [stepProgress, setStepProgress] = useState(0);
+  const [copied, setCopied] = useState(false);
 
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [arcPath, setArcPath] = useState<string>('');
-  const [packetPos, setPacketPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const copyTakeaway = () => {
+    if (interviewTakeaway) {
+      navigator.clipboard.writeText(interviewTakeaway);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const activeStep = steps[currentStepIndex] || steps[0];
-  const fromNode = nodes.find(n => n.id === activeStep.from) || nodes[0];
-  const toNode = nodes.find(n => n.id === activeStep.to) || nodes[nodes.length - 1];
+  const { node: fromNode, index: fromNodeIdx } = resolveNodeInfo(activeStep.from, nodes, 0);
+  const { node: toNode, index: toNodeIdx } = resolveNodeInfo(activeStep.to, nodes, nodes.length - 1);
 
   const stepDurationMs = 4500 / playbackSpeed;
 
@@ -81,16 +124,15 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
     const next = !soundEnabled;
     setSoundEnabled(next);
     soundEffects.setEnabled(next);
-    if (next) {
-      soundEffects.playTick();
-    }
+    if (next) soundEffects.playTick();
   };
 
   // Play audio reaction on step change
   useEffect(() => {
     if (soundEnabled) {
       soundEffects.playDispatch();
-      const isBlocked = activeStep.status === 'attack' ||
+      const isBlocked =
+        activeStep.status === 'attack' ||
         (activeStep.telemetry?.statusBadge && activeStep.telemetry.statusBadge.toLowerCase().includes('block'));
       const timeout = setTimeout(() => {
         if (isBlocked) {
@@ -136,74 +178,50 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
     return () => clearInterval(interval);
   }, [isPlaying, currentStepIndex, steps.length, stepDurationMs, onStepChange]);
 
-  // Calculate Bezier Arc & Node coordinates
-  const calculateCurve = useCallback(() => {
-    if (!containerRef.current || !activeStep) return;
-    const fromEl = containerRef.current.querySelector('[data-node-id="' + activeStep.from + '"]') as HTMLElement;
-    const toEl = containerRef.current.querySelector('[data-node-id="' + activeStep.to + '"]') as HTMLElement;
-    if (fromEl && toEl) {
-      const cRect = containerRef.current.getBoundingClientRect();
-      const fRect = fromEl.getBoundingClientRect();
-      const tRect = toEl.getBoundingClientRect();
-      const x1 = fRect.left + fRect.width / 2 - cRect.left;
-      const y1 = fRect.top + 32 - cRect.top;
-      const x2 = tRect.left + tRect.width / 2 - cRect.left;
-      const y2 = tRect.top + 32 - cRect.top;
-      const midX = (x1 + x2) / 2;
-      const distance = Math.abs(x2 - x1);
-      const arcHeight = Math.max(45, Math.min(95, distance * 0.24));
-      const peakY = Math.min(y1, y2) - arcHeight;
-      setArcPath('M ' + x1 + ' ' + y1 + ' Q ' + midX + ' ' + peakY + ' ' + x2 + ' ' + y2);
-      setPacketPos({ x: midX, y: peakY + 8 });
-    }
-  }, [activeStep]);
-
+  // Keyboard navigation shortcuts
   useEffect(() => {
-    calculateCurve();
-    window.addEventListener('resize', calculateCurve);
-    return () => window.removeEventListener('resize', calculateCurve);
-  }, [calculateCurve]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        setIsPlaying(p => !p);
+        soundEffects.playTick();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        setIsPlaying(false);
+        soundEffects.playTick();
+        onStepChange(Math.max(0, currentStepIndex - 1));
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        setIsPlaying(false);
+        soundEffects.playTick();
+        onStepChange(Math.min(steps.length - 1, currentStepIndex + 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentStepIndex, steps.length, onStepChange]);
 
   const getNodeIcon = (iconType?: string) => {
     switch (iconType) {
-      case 'key': return <Key size={20} />;
-      case 'phone': return <Smartphone size={20} />;
-      case 'shield': return <ShieldCheck size={20} />;
-      case 'blocked': return <ShieldCheck size={20} />;
-      case 'attacker': return <ShieldAlert size={20} />;
-      case 'server': return <Server size={20} />;
-      case 'database': return <Database size={20} />;
-      case 'auth': return <Lock size={20} />;
-      case 'api': return <Cpu size={20} />;
+      case 'key': return <Key size={18} />;
+      case 'phone': return <Smartphone size={18} />;
+      case 'shield': return <ShieldCheck size={18} />;
+      case 'blocked': return <ShieldCheck size={18} />;
+      case 'attacker': return <ShieldAlert size={18} />;
+      case 'server': return <Server size={18} />;
+      case 'database': return <Database size={18} />;
+      case 'auth': return <Lock size={18} />;
+      case 'api': return <Cpu size={18} />;
       case 'browser':
-      default: return <Globe size={20} />;
+      default: return <Globe size={18} />;
     }
   };
 
-  const copyTakeaway = () => {
-    navigator.clipboard.writeText(interviewTakeaway);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const speakTakeaway = () => {
-    if (!('speechSynthesis' in window)) return;
-    if (isPlayingAudio) {
-      window.speechSynthesis.cancel();
-      setIsPlayingAudio(false);
-    } else {
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(interviewTakeaway);
-      u.rate = 0.95;
-      u.onend = () => setIsPlayingAudio(false);
-      u.onerror = () => setIsPlayingAudio(false);
-      window.speechSynthesis.speak(u);
-      setIsPlayingAudio(true);
-    }
-  };
 
   const telemetry = activeStep.telemetry;
-  const isBlockedVerdict = activeStep.status === 'attack' ||
+  const isBlockedVerdict =
+    activeStep.status === 'attack' ||
     (telemetry?.statusBadge && telemetry.statusBadge.toLowerCase().includes('block'));
 
   // Hex dump generator for simulated wiretap inspection
@@ -237,7 +255,7 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
 
   return (
     <div className={`visual-split-workspace ${isTheaterMode ? 'theater-mode-active' : ''}`}>
-      {/* Video Progress Tabs Bar */}
+      {/* Step Selector Pills Bar */}
       <div className="flow-step-selector-row">
         {steps.map((step, idx) => {
           const isPassed = idx < currentStepIndex;
@@ -268,23 +286,25 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
         })}
       </div>
 
-      {/* Main Grid: Left Stage + Right Insight Panels */}
+      {/* Main Grid: Left Stage (Sequence Diagram) + Right Insight Panels */}
       <div className="flow-split-grid">
-        {/* Left Column: Interactive Visual Lab */}
+        {/* Left Column: Interactive Sequence Diagram */}
         <div className="flow-stage-column">
-          <div className="interactive-stage-card" ref={containerRef}>
+          <div className="sequence-diagram-card">
             <div className="cyber-grid-mesh" />
 
-            {/* Stage Live Telemetry Bar */}
-            <div className="stage-telemetry-hud">
-              <div className="telemetry-route-badge">
+            {/* Top Sequence Telemetry HUD */}
+            <div className="sequence-hud-bar">
+              <div className="sequence-route-info">
                 <Radio size={13} className="pulse-icon broadcasting" />
-                <span className="route-text">{fromNode.label}</span>
-                <ArrowRight size={12} className="route-arrow" />
-                <span className="route-text highlight">{toNode.label}</span>
+                <span className="hud-label">SEQUENCE TRACE:</span>
+                <span className="hud-entity-name">{fromNode.label}</span>
+                <ArrowRight size={12} className="hud-arrow" />
+                <span className="hud-entity-name highlight">{toNode.label}</span>
+                <span className="hud-timecode">[T+{currentStepIndex * 75}ms]</span>
               </div>
 
-              <div className="hud-right-actions">
+              <div className="sequence-hud-actions">
                 <button
                   type="button"
                   className={`hud-wiretap-btn ${showWiretapModal ? 'active' : ''}`}
@@ -303,181 +323,170 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
               </div>
             </div>
 
-            {/* Laser Arc with Traveling Particle & Plasma Core */}
-            <svg className="stage-laser-svg" aria-hidden="true">
-              <defs>
-                <linearGradient id="laserBeamGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#2563eb" />
-                  <stop offset="50%" stopColor="#0284c7" />
-                  <stop offset="100%" stopColor={isBlockedVerdict ? '#ef4444' : '#10b981'} />
-                </linearGradient>
+            {/* Sequence Diagram Body */}
+            <div className="sequence-diagram-canvas">
+              {/* Participant Lifeline Columns Header */}
+              <div className="sequence-participants-row" style={{ gridTemplateColumns: `repeat(${nodes.length}, 1fr)` }}>
+                {nodes.map((node, nIdx) => {
+                  const isNodeActive = nIdx === fromNodeIdx || nIdx === toNodeIdx;
+                  const isSender = nIdx === fromNodeIdx;
+                  const isReceiver = nIdx === toNodeIdx;
+                  const isSelected = selectedNodeId === node.id;
 
-                <radialGradient id="plasmaCoreGrad">
-                  <stop offset="0%" stopColor="#ffffff" stopOpacity="1" />
-                  <stop offset="40%" stopColor={isBlockedVerdict ? '#f87171' : '#38bdf8'} stopOpacity="0.9" />
-                  <stop offset="100%" stopColor={isBlockedVerdict ? '#dc2626' : '#2563eb'} stopOpacity="0" />
-                </radialGradient>
-
-                <filter id="laserGlowFilter" x="-40%" y="-40%" width="180%" height="180%">
-                  <feGaussianBlur stdDeviation="3.5" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-
-              {arcPath && (
-                <>
-                  {/* Background laser glow trace */}
-                  <path
-                    d={arcPath}
-                    fill="none"
-                    stroke={isBlockedVerdict ? 'rgba(239, 68, 68, 0.25)' : 'rgba(56, 189, 248, 0.22)'}
-                    strokeWidth="8"
-                    className="laser-glow-trail"
-                  />
-                  {/* Dashed animated primary laser */}
-                  <path
-                    id="laserFlightPath"
-                    d={arcPath}
-                    fill="none"
-                    stroke="url(#laserBeamGrad)"
-                    strokeWidth="3.5"
-                    strokeDasharray="8,8"
-                    className="laser-arc-animated"
-                  />
-
-                  {/* Traveling Energy Plasma Shuttle along the Bezier Arc */}
-                  <g filter="url(#laserGlowFilter)">
-                    {/* Trailing energy spark 2 */}
-                    <circle r="3.5" fill={isBlockedVerdict ? '#fca5a5' : '#7dd3fc'} opacity="0.6">
-                      <animateMotion
-                        path={arcPath}
-                        dur={`${2.4 / playbackSpeed}s`}
-                        begin="-0.18s"
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                    {/* Trailing energy spark 1 */}
-                    <circle r="4.5" fill={isBlockedVerdict ? '#ef4444' : '#38bdf8'} opacity="0.8">
-                      <animateMotion
-                        path={arcPath}
-                        dur={`${2.4 / playbackSpeed}s`}
-                        begin="-0.09s"
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                    {/* Glowing Plasma Core */}
-                    <circle r="8" fill="url(#plasmaCoreGrad)">
-                      <animateMotion
-                        path={arcPath}
-                        dur={`${2.4 / playbackSpeed}s`}
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                    {/* Inner brilliant photon spark */}
-                    <circle r="3" fill="#ffffff">
-                      <animateMotion
-                        path={arcPath}
-                        dur={`${2.4 / playbackSpeed}s`}
-                        repeatCount="indefinite"
-                      />
-                    </circle>
-                  </g>
-                </>
-              )}
-            </svg>
-
-            {/* Flying Packet Chip (Interactive click to inspect) */}
-            {packetPos.x > 0 && (
-              <div
-                className={'flying-packet-chip ' + activeStep.status + (isBlockedVerdict ? ' blocked-packet' : '')}
-                style={{ left: packetPos.x + 'px', top: packetPos.y + 'px' }}
-                onClick={() => setShowWiretapModal(true)}
-                title="Click to inspect raw packet data"
-              >
-                <Zap size={13} className="zap-sparkle" />
-                <span className="packet-chip-label">{activeStep.packet}</span>
-                <span className="packet-inspect-hint">INSPECT</span>
-              </div>
-            )}
-
-            {/* Connecting Wire */}
-            <div className="stage-connecting-wire" />
-
-            {/* Interactive Nodes Row */}
-            <div className="stage-nodes-row">
-              {nodes.map((node, idx) => {
-                const isCompleted = idx <= currentStepIndex;
-                const isCurrent = idx === currentStepIndex;
-                const isFrom = node.id === activeStep.from;
-                const isTo = node.id === activeStep.to;
-                const isSelected = selectedNodeId === node.id;
-
-                return (
-                  <div
-                    key={node.id}
-                    data-node-id={node.id}
-                    className={`stage-node-item ${isSelected ? 'is-inspected' : ''}`}
-                    onClick={() => setSelectedNodeId(isSelected ? null : node.id)}
-                    title={`Click to inspect ${node.label} security parameters`}
-                  >
-                    {/* Sender Outgoing Radar Pulse Wave */}
-                    {isFrom && <div className="node-radar-pulse" />}
-
-                    {/* Target Node Security Shockwave Barrier */}
-                    {isTo && (
-                      <div className={`target-impact-shockwave ${isBlockedVerdict ? 'threat-deflection' : 'clearance-allowed'}`}>
-                        <div className="shockwave-ring outer" />
-                        <div className="shockwave-ring inner" />
-                      </div>
-                    )}
-
-                    <div className={'node-beacon-ring ' + (isCompleted ? 'active' : '') + (isTo && isBlockedVerdict ? ' blocked' : '')} />
-
-                    <div className={
-                      'node-box-enclosure ' +
-                      (isCurrent ? 'current-step' : '') +
-                      (isFrom ? ' source-node' : '') +
-                      (isTo ? ' target-node' : '') +
-                      (node.iconType === 'attacker' ? ' threat-node' : '') +
-                      (isTo && isBlockedVerdict ? ' intercepted' : '') +
-                      (isSelected ? ' selected-spec' : '')
-                    }>
-                      {isFrom && <span className="node-live-tag dispatch">SENDING</span>}
-                      {isTo && (
-                        <span className={`node-live-tag ${isBlockedVerdict ? 'blocked-alert' : 'verify'}`}>
-                          {isBlockedVerdict ? 'BLOCKED' : 'INSPECTING'}
-                        </span>
-                      )}
-
-                      <div className="node-icon-wrapper">
-                        {getNodeIcon(node.iconType)}
-                      </div>
-                      <div className="node-titles">
-                        <div className="node-main-title">{node.label}</div>
-                        {node.sub && <div className="node-sub-title">{node.sub}</div>}
+                  return (
+                    <div
+                      key={node.id}
+                      className={`sequence-participant-column ${isNodeActive ? 'participant-active' : ''} ${isSelected ? 'participant-selected' : ''}`}
+                      onClick={() => setSelectedNodeId(isSelected ? null : node.id)}
+                      title={`Click to inspect security profile of ${node.label}`}
+                    >
+                      <div className={`participant-header-box ${node.iconType === 'attacker' ? 'attacker-box' : ''}`}>
+                        <div className="participant-icon-pill">
+                          {getNodeIcon(node.iconType)}
+                        </div>
+                        <div className="participant-meta">
+                          <div className="participant-label">{node.label}</div>
+                          {node.sub && <div className="participant-sub">{node.sub}</div>}
+                        </div>
+                        {isSender && <span className="participant-role-tag sender-tag">SENDING</span>}
+                        {isReceiver && (
+                          <span className={`participant-role-tag ${isBlockedVerdict ? 'blocked-tag' : 'receiver-tag'}`}>
+                            {isBlockedVerdict ? 'BLOCKED' : 'VERIFYING'}
+                          </span>
+                        )}
                       </div>
 
-                      {/* Interactive Tap Hint */}
-                      <span className="node-spec-click-hint">
-                        {isSelected ? 'Inspecting' : 'Tap to inspect'}
-                      </span>
+                      {/* Vertical Lifeline Track Guide */}
+                      <div className={`sequence-lifeline-track ${isNodeActive ? 'active-track' : ''}`} />
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {/* Sequential Request / Response Step Rows */}
+              <div className="sequence-messages-corridor">
+                {steps.map((step, sIdx) => {
+                  const isCurrent = sIdx === currentStepIndex;
+                  const isPassed = sIdx < currentStepIndex;
+                  const isFuture = sIdx > currentStepIndex;
+
+                  const { index: stepFromIdx } = resolveNodeInfo(step.from, nodes, 0);
+                  const { index: stepToIdx } = resolveNodeInfo(step.to, nodes, nodes.length - 1);
+
+                  const totalCols = Math.max(1, nodes.length);
+                  const colWidthPercent = 100 / totalCols;
+                  const fromCenterPercent = (stepFromIdx + 0.5) * colWidthPercent;
+                  const toCenterPercent = (stepToIdx + 0.5) * colWidthPercent;
+
+                  const isLeftToRight = stepToIdx >= stepFromIdx;
+                  const isSelfCall = stepFromIdx === stepToIdx;
+
+                  const arrowLeft = Math.min(fromCenterPercent, toCenterPercent);
+                  const arrowWidth = isSelfCall ? colWidthPercent * 0.45 : Math.abs(toCenterPercent - fromCenterPercent);
+
+                  const stepBlocked = step.status === 'attack' ||
+                    (step.telemetry?.statusBadge && step.telemetry.statusBadge.toLowerCase().includes('block'));
+
+                  return (
+                    <div
+                      key={step.id}
+                      className={`sequence-message-row ${isCurrent ? 'row-active' : ''} ${isPassed ? 'row-passed' : ''} ${isFuture ? 'row-future' : ''}`}
+                      onClick={() => {
+                        setIsPlaying(false);
+                        soundEffects.playTick();
+                        onStepChange(sIdx);
+                      }}
+                      title={`Click to jump to Step ${sIdx + 1}: ${step.label}`}
+                    >
+                      {/* Step Chrono Label */}
+                      <div className="sequence-row-timestamp">
+                        <span className="seq-num-badge">#{sIdx + 1}</span>
+                        <span className="seq-time-text">T+{sIdx * 75}ms</span>
+                      </div>
+
+                      {/* Message Arrow Container */}
+                      <div className="sequence-arrow-track">
+                        {isSelfCall ? (
+                          /* Loopback self-referential check arrow */
+                          <div
+                            className={`sequence-self-arrow ${isCurrent ? 'active' : ''} ${stepBlocked ? 'blocked' : ''}`}
+                            style={{ left: `${fromCenterPercent}%` }}
+                          >
+                            <div className="self-loop-arc" />
+                            <div className="seq-packet-banner self-banner">
+                              <span className="seq-action-tag">SELF-EVAL</span>
+                              <span className="seq-packet-text">{step.packet}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Inter-lifeline directional message arrow */
+                          <div
+                            className={`sequence-arrow-lane ${isCurrent ? 'active-lane' : ''} ${stepBlocked ? 'blocked-lane' : ''}`}
+                            style={{
+                              left: `${arrowLeft}%`,
+                              width: `${arrowWidth}%`,
+                            }}
+                          >
+                            {/* Directional Arrow Line */}
+                            <div className={`sequence-vector-line ${isLeftToRight ? 'flow-right' : 'flow-left'}`}>
+                              <div className="vector-stem" />
+                              {isLeftToRight ? (
+                                <div className="vector-head right-head" />
+                              ) : (
+                                <div className="vector-head left-head" />
+                              )}
+
+                              {/* Animated Photon Packet along active line */}
+                              {isCurrent && (
+                                <div
+                                  className={`vector-photon-particle ${isLeftToRight ? 'slide-right' : 'slide-left'} ${stepBlocked ? 'blocked-particle' : ''}`}
+                                  style={{ animationDuration: `${2.2 / playbackSpeed}s` }}
+                                />
+                              )}
+                            </div>
+
+                            {/* Message Payload & Method Badge */}
+                            <div className="sequence-payload-card">
+                              {step.telemetry?.method && (
+                                <span className="seq-method-tag">{step.telemetry.method.split(' ')[0]}</span>
+                              )}
+                              <span className="seq-packet-label">{step.packet}</span>
+                              {isCurrent && (
+                                <button
+                                  type="button"
+                                  className="seq-inspect-chip-btn"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowWiretapModal(true);
+                                  }}
+                                  title="Inspect wiretap"
+                                >
+                                  INSPECT
+                                </button>
+                              )}
+                              {step.telemetry?.statusBadge && (
+                                <span className={`seq-verdict-pill ${stepBlocked ? 'blocked' : 'allowed'}`}>
+                                  {step.telemetry.statusBadge}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Selected Node Security Specification Drawer (Shown when node is clicked) */}
+            {/* Selected Node Spec Drawer */}
             {selectedNode && (
               <div className="selected-node-inspector-drawer">
                 <div className="inspector-drawer-header">
                   <div className="drawer-title-group">
                     <Info size={14} className="drawer-icon" />
                     <span className="drawer-title">Entity Security Spec: <strong>{selectedNode.label}</strong></span>
-                    <span className="drawer-sub-badge">{selectedNode.sub || 'Local Host'}</span>
+                    <span className="drawer-sub-badge">{selectedNode.sub || 'Host'}</span>
                   </div>
                   <button
                     type="button"
@@ -506,19 +515,19 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
                         ? `Dispatches ${activeStep.packet} across network boundary`
                         : selectedNode.id === activeStep.to
                         ? `Evaluates origin policy, headers, & credentials`
-                        : 'Passive intermediary / listener in this step'}
+                        : 'Passive intermediary / observer in this step'}
                     </span>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* In-Depth Animation Explanation Box */}
+            {/* Live Telemetry & Deep Step Breakdown Console */}
             <div className="stage-deep-explanation-container">
               <div className="stage-deep-header">
                 <div className="deep-title-group">
                   <Terminal size={14} className="terminal-icon" />
-                  <span className="deep-title-label">Live Protocol Telemetry & Deep Step Breakdown</span>
+                  <span className="deep-title-label">Step Telemetry & Security Action</span>
                 </div>
                 {telemetry && telemetry.protocol && (
                   <span className="telemetry-protocol-tag">{telemetry.protocol}</span>
@@ -619,7 +628,7 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
                   onStepChange(0);
                   setIsPlaying(true);
                 }}
-                title="Restart simulation"
+                title="Restart sequence"
               >
                 <RotateCcw size={13} />
                 <span>Restart</span>
@@ -685,7 +694,7 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
                 <option value="0.75">0.75x</option>
                 <option value="1">1.0x</option>
                 <option value="1.5">1.5x</option>
-                <option value="2">2.0x</option>
+                <option value="2.0">2.0x</option>
               </select>
 
               {/* Theater Mode Toggle */}
@@ -747,120 +756,113 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
               ))}
             </div>
           </section>
+
+          {interviewTakeaway && (
+            <div className="flow-takeaway-banner">
+              <div className="takeaway-banner-header">
+                <span className="takeaway-badge">🎯 INTERVIEW GOLDEN TAKEAWAY</span>
+                <button
+                  type="button"
+                  className="btn-copy-takeaway"
+                  onClick={copyTakeaway}
+                  title="Copy Interview Takeaway"
+                >
+                  <Copy size={13} />
+                  <span>{copied ? 'Copied!' : 'Copy'}</span>
+                </button>
+              </div>
+              <p className="takeaway-banner-text">{interviewTakeaway}</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Bottom Wide Panel: Interview Takeaway */}
-      <section className="interview-takeaway-wide-card">
-        <div className="takeaway-header-bar">
-          <div className="takeaway-title-wrap">
-            <div className="takeaway-icon-box">
-              <Target size={18} />
-            </div>
-            <h3>Interview Takeaway Formula</h3>
-          </div>
-          <div className="takeaway-action-buttons">
-            <button
-              className={'takeaway-btn-voice ' + (isPlayingAudio ? 'active' : '')}
-              onClick={speakTakeaway}
-            >
-              <Volume2 size={15} />
-              <span>{isPlayingAudio ? 'Stop Voice' : 'Listen'}</span>
-            </button>
-            <button className="takeaway-btn-copy" onClick={copyTakeaway}>
-              {copied ? <Check size={14} /> : <Copy size={14} />}
-              <span>{copied ? 'Copied' : 'Copy Takeaway'}</span>
-            </button>
-          </div>
-        </div>
-        <p className="takeaway-verdict-quote">
-          "{interviewTakeaway}"
-        </p>
-      </section>
-
-      {/* Deep Wiretap & Hex Stream Inspector Modal */}
+      {/* Wiretap Inspector Modal */}
       {showWiretapModal && (
         <div className="wiretap-modal-overlay" onClick={() => setShowWiretapModal(false)}>
           <div className="wiretap-modal-window" onClick={(e) => e.stopPropagation()}>
             <div className="wiretap-modal-header">
-              <div className="wiretap-modal-title">
-                <Binary size={18} className="wiretap-icon" />
+              <div className="modal-title-group">
+                <Binary size={18} className="cyber-neon-icon" />
                 <div>
-                  <h4>Deep Wiretap & Protocol Packet Inspector</h4>
-                  <span className="wiretap-subtitle">
-                    Step {currentStepIndex + 1}: {fromNode.label} → {toNode.label} ({activeStep.packet})
-                  </span>
+                  <h3 className="modal-main-title">Wiretap Protocol Inspector</h3>
+                  <p className="modal-sub-title">Live traffic frame analysis for step: {activeStep.label}</p>
                 </div>
               </div>
               <button
                 type="button"
-                className="wiretap-modal-close"
+                className="modal-close-icon-btn"
                 onClick={() => setShowWiretapModal(false)}
+                aria-label="Close modal"
               >
                 <X size={18} />
               </button>
             </div>
 
-            {/* Sub-tabs: Wire vs Hex vs SOP Matrix */}
-            <div className="wiretap-nav-tabs">
+            {/* Wiretap Tabs Switcher */}
+            <div className="wiretap-modal-tabs">
               <button
                 type="button"
-                className={`wiretap-tab-btn ${wiretapTab === 'wire' ? 'active' : ''}`}
+                className={'wiretap-tab-btn ' + (wiretapTab === 'wire' ? 'active' : '')}
                 onClick={() => setWiretapTab('wire')}
               >
-                <Code2 size={13} />
-                <span>HTTP Wire Traffic</span>
+                <Terminal size={14} />
+                <span>Raw HTTP Traffic</span>
               </button>
               <button
                 type="button"
-                className={`wiretap-tab-btn ${wiretapTab === 'hex' ? 'active' : ''}`}
+                className={'wiretap-tab-btn ' + (wiretapTab === 'hex' ? 'active' : '')}
                 onClick={() => setWiretapTab('hex')}
               >
-                <Binary size={13} />
-                <span>Hex Dump Stream</span>
+                <Binary size={14} />
+                <span>Hex Dump (RFC Frame)</span>
               </button>
               <button
                 type="button"
-                className={`wiretap-tab-btn ${wiretapTab === 'sop' ? 'active' : ''}`}
+                className={'wiretap-tab-btn ' + (wiretapTab === 'sop' ? 'active' : '')}
                 onClick={() => setWiretapTab('sop')}
               >
-                <ShieldCheck size={13} />
-                <span>SOP Origin Tuple Check</span>
+                <ShieldCheck size={14} />
+                <span>SOP / CORS Policy</span>
               </button>
             </div>
 
-            <div className="wiretap-modal-content">
+            {/* Modal Body */}
+            <div className="wiretap-modal-body">
               {wiretapTab === 'wire' && (
-                <div className="wire-traffic-view">
-                  <div className="wire-meta-row">
-                    <span className="meta-badge-protocol">{telemetry?.protocol || 'HTTP/1.1'}</span>
-                    <span className="meta-badge-method">{telemetry?.method || 'POST'}</span>
-                    <span className="meta-badge-target">Destination: {toNode.sub || 'api.example.com'}</span>
+                <div className="raw-wire-container">
+                  <div className="wire-code-header">
+                    <span>HTTP/1.1 WIRE DISPATCH (SYN/ACK)</span>
+                    <button
+                      type="button"
+                      className="btn-copy-wire"
+                      onClick={() => {
+                        navigator.clipboard.writeText(rawWireString);
+                      }}
+                    >
+                      <Copy size={12} />
+                      <span>Copy</span>
+                    </button>
                   </div>
                   <pre className="wire-code-block">
-                    {rawWireString}
+                    <code>{rawWireString}</code>
                   </pre>
-                  {telemetry?.securityAction && (
-                    <div className="wire-security-action-box">
-                      <strong>Security Engine Assertion:</strong> {telemetry.securityAction}
-                    </div>
-                  )}
                 </div>
               )}
 
               {wiretapTab === 'hex' && (
-                <div className="hex-dump-view">
-                  <div className="hex-table-header">
+                <div className="hexdump-container">
+                  <div className="hexdump-header-row">
                     <span className="col-offset">OFFSET</span>
-                    <span className="col-hex">HEXADECIMAL DUMP</span>
+                    <span className="col-hex">HEX DATA (16 BYTES)</span>
                     <span className="col-ascii">ASCII</span>
                   </div>
-                  <div className="hex-lines-scroll">
-                    {generateHexDump(rawWireString).map((row, i) => (
-                      <div key={i} className="hex-line-row">
-                        <span className="hex-offset">{row.offset}</span>
-                        <span className="hex-bytes">{row.hex}</span>
-                        <span className="hex-ascii">{row.ascii}</span>
+                  <div className="hexdump-lines-box">
+                    {generateHexDump(rawWireString).map((line, idx) => (
+                      <div key={idx} className="hexdump-line">
+                        <span className="col-offset">{line.offset}</span>
+                        <span className="col-hex">{line.hex}</span>
+                        <span className="col-ascii">{line.ascii}</span>
                       </div>
                     ))}
                   </div>
@@ -868,48 +870,17 @@ export const VisualFlowView: React.FC<VisualFlowViewProps> = ({
               )}
 
               {wiretapTab === 'sop' && (
-                <div className="sop-tuple-view">
-                  <p className="sop-intro-text">
-                    Browser evaluates Same-Origin Policy against the request tuple (<strong>Scheme</strong>, <strong>Host</strong>, <strong>Port</strong>):
-                  </p>
-                  <table className="sop-tuple-table">
-                    <thead>
-                      <tr>
-                        <th>Tuple Component</th>
-                        <th>Origin A ({fromNode.label})</th>
-                        <th>Origin B ({toNode.label})</th>
-                        <th>Match?</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td><strong>Scheme (Protocol)</strong></td>
-                        <td><code>https:</code></td>
-                        <td><code>https:</code></td>
-                        <td className="match-yes">✅ Yes</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Host (Domain)</strong></td>
-                        <td><code>{fromNode.sub || 'app.example.com'}</code></td>
-                        <td><code>{toNode.sub || 'api.example.com'}</code></td>
-                        <td className={fromNode.sub === toNode.sub ? 'match-yes' : 'match-no'}>
-                          {fromNode.sub === toNode.sub ? '✅ Yes' : '❌ No (Cross-Origin)'}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td><strong>Port</strong></td>
-                        <td><code>443</code></td>
-                        <td><code>443</code></td>
-                        <td className="match-yes">✅ Yes</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                  <div className="sop-final-verdict-box">
-                    <strong>Browser Action:</strong> {
-                      isBlockedVerdict
-                        ? '🚫 BLOCKED: Different origin without Access-Control-Allow-Origin header matching requester.'
-                        : '✅ RELAXED BY CORS: Server headers explicitly authorize cross-origin read access.'
-                    }
+                <div className="sop-policy-container">
+                  <div className="sop-card">
+                    <h4>Same-Origin Policy (SOP) Context</h4>
+                    <p>
+                      The Same-Origin Policy isolates origins defined strictly by <code>Scheme + Host + Port</code>.
+                      CORS (Cross-Origin Resource Sharing) selectively relaxes this sandbox when the server explicitely returns <code>Access-Control-Allow-Origin</code>.
+                    </p>
+                    <div className="policy-verdict-banner">
+                      <span className="badge-label">Current Protocol State:</span>
+                      <strong className="badge-value">{activeStep.packet}</strong>
+                    </div>
                   </div>
                 </div>
               )}
